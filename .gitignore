@@ -1,0 +1,86 @@
+# =========================================
+# BioChainAI 2.0 — Root .gitignore
+# =========================================
+
+# ------------------------------------------
+# SECRETS & ENVIRONMENT
+# ------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ------------------------------------------
+# PYTHON (Backend)
+# ------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.mypy_cache/
+.pytest_cache/
+*.pyo
+
+# ------------------------------------------
+# NODE / JAVASCRIPT (Frontend & Blockchain)
+# ------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+
+# ------------------------------------------
+# VITE / REACT (Frontend Build Output)
+# ------------------------------------------
+frontend/dist/
+frontend/.vite/
+
+# ------------------------------------------
+# HARDHAT (Blockchain)
+# ------------------------------------------
+blockchain/cache/
+blockchain/artifacts/
+blockchain/typechain/
+blockchain/typechain-types/
+deployments/
+.hardhat_cache/
+
+# ------------------------------------------
+# EDITOR / IDE
+# ------------------------------------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ------------------------------------------
+# OS / SYSTEM
+# ------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------
+# LOGS
+# ------------------------------------------
+*.log
+logs/
