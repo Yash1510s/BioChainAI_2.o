@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from './config';
 import { motion } from 'framer-motion';
 import {
     Activity, FileText, User, Heart, Phone, Clock,
@@ -8,7 +9,7 @@ import {
     Zap, ArrowLeft, X
 } from 'lucide-react';
 
-function Dashboard({ role }) {
+function Dashboard({ role, userData }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -18,7 +19,7 @@ function Dashboard({ role }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/dashboard');
+                const res = await axios.get(`${API_BASE_URL}/dashboard`);
                 setData(res.data);
             } catch (err) {
                 console.error(err);
@@ -97,10 +98,10 @@ function Dashboard({ role }) {
 
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight">
-                                {selectedPatient ? `Patient: ${selectedPatient.name}` : (role === 'DOCTOR' ? "Dr. Strange" : "Yash Vijay Singh")}
+                                {selectedPatient ? `Patient: ${selectedPatient.name}` : (role === 'DOCTOR' ? `Dr. ${userData?.name || 'Strange'}` : userData?.name || "Yash Vijay Singh")}
                             </h1>
                             <p className="text-slate-400 text-sm">
-                                {selectedPatient ? 'Viewing Live Clinical Data' : (role === 'DOCTOR' ? 'Cardiology Dept • BioChain Hospital' : 'Personal Health Dashboard')}
+                                {selectedPatient ? 'Viewing Live Clinical Data' : (role === 'DOCTOR' ? 'Clinical Workspace • BioChain Network' : 'Manage your decentralized health ecosystem.')}
                             </p>
                         </div>
                     </div>
@@ -134,9 +135,9 @@ function Dashboard({ role }) {
                     {/* Logic to determine WHICH vitals to show */}
                     <VitalsWidget
                         title={selectedPatient ? "Patient" : "My"}
-                        values={selectedPatient ?
-                            { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : // Mock Patient Data (Yash)
-                            { hr: 65, spo2: 99, bp: "118/76", weight: 75 }   // Mock Doctor Data (Dr. Strange)
+                        values={selectedPatient || role === 'PATIENT' ?
+                            { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : // Patient Vitals
+                            { hr: 65, spo2: 99, bp: "118/76", weight: 75 }   // Doctor Stats
                         }
                     />
                 </div>
@@ -247,10 +248,10 @@ function Dashboard({ role }) {
                         <motion.div className="lg:col-span-2 bg-[#121620] rounded-3xl p-8 border border-slate-800 shadow-xl">
                             <div className="flex justify-between items-start mb-8">
                                 <div>
-                                    <h2 className="text-3xl font-bold text-white mb-1">{selectedPatient ? selectedPatient.name : data.name}</h2>
+                                    <h2 className="text-3xl font-bold text-white mb-1">{selectedPatient ? selectedPatient.name : userData?.name}</h2>
                                     <div className="flex items-center gap-2 text-slate-500 text-xs font-mono bg-black/20 px-2 py-1 rounded w-fit">
                                         <Shield size={12} className="text-emerald-500" />
-                                        {data.email_hash.substring(0, 40)}...
+                                        {data.email_hash?.substring(0, 40) || '0x...'}...
                                     </div>
                                 </div>
                                 <span className="bg-emerald-500/10 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
@@ -261,15 +262,15 @@ function Dashboard({ role }) {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                                     <div className="text-rose-400 text-xs font-bold uppercase mb-2 flex items-center gap-2"><Heart size={14} /> Blood Type</div>
-                                    <p className="text-2xl font-bold">{data.blood_type}</p>
+                                    <p className="text-2xl font-bold">{data.blood_type || "N/A"}</p>
                                 </div>
                                 <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                                     <div className="text-amber-400 text-xs font-bold uppercase mb-2 flex items-center gap-2"><FileText size={14} /> Allergies</div>
-                                    <p className="text-lg">{data.allergies}</p>
+                                    <p className="text-lg">{data.allergies || "None"}</p>
                                 </div>
                                 <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
                                     <div className="text-blue-400 text-xs font-bold uppercase mb-2 flex items-center gap-2"><Phone size={14} /> Emergency</div>
-                                    <p className="text-lg">{data.emergency_contact}</p>
+                                    <p className="text-lg">{data.emergency_contact || "N/A"}</p>
                                 </div>
                             </div>
                         </motion.div>

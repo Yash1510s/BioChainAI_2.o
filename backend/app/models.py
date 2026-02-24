@@ -3,6 +3,9 @@ from pydantic import BaseModel
 class PatientSignup(BaseModel):
     name: str
     email: str
-    blood_type: str
-    allergies: str
-    emergency_contact: str
+    phone: str
+    address: str
+    password: str
+    blood_type: str = "O+"
+    allergies: str = "None"
+    emergency_contact: str = "N/A"

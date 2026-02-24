@@ -1,13 +1,16 @@
 const hre = require("hardhat");
 
 async function main() {
-    console.log("🏥 Deploying BioChainHospital...");
+    console.log("🏥 Deploying BioChainNetwork...");
 
     // 1. Get the Contract Factory (The Blueprint)
-    const BioChainHospital = await hre.ethers.getContractFactory("BioChainHospital");
+    // FIX 1: Look for the new Enterprise contract name
+    const BioChainNetwork = await hre.ethers.getContractFactory("BioChainNetwork");
 
-    // 2. Deploy it (We pass the Hospital Name to the constructor here)
-    const bioChain = await BioChainHospital.deploy("BioChain General Hospital");
+    // 2. Deploy it 
+    // FIX 2: The new contract doesn't take a hospital name in the constructor anymore.
+    // The network starts empty, and the Super Admin registers hospitals later!
+    const bioChain = await BioChainNetwork.deploy();
 
     // 3. Wait for the transaction to finish
     await bioChain.waitForDeployment();
