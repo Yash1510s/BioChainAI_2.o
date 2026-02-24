@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\YASH VIJAY SINGH\\OneDrive\\Desktop\\BioChainAi- 2.0\\blockchain\\contracts\\BioChaincontract.sol": {
-      "lastModificationDate": 1771076900893,
-      "contentHash": "ce8dbcb284a9080658f19d12c51a53ba",
+      "lastModificationDate": 1771867916782,
+      "contentHash": "8fcd7e03a1ad0187323f10ab652e4d98",
       "sourceName": "contracts/BioChaincontract.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -33,7 +33,7 @@
         "^0.8.19"
       ],
       "artifacts": [
-        "BioChainHospital"
+        "BioChainNetwork"
       ]
     }
   }
