@@ -10,21 +10,29 @@ const Register = ({ role }) => {
         phone: '',
         address: '',
         password: '',
-        blood_type: 'O+',
+        bloodGroup: 'O+',
         allergies: 'None',
-        emergency_contact: ''
+        emergencyContact: ''
     });
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+        console.log("Attempting to align submitting data:", formData);
         try {
-            // This matches your existing backend endpoint in main.py
             const response = await axios.post(`${API_BASE_URL}/register`, formData);
             alert("Identity Created! You can now log in.");
-            window.location.reload(); // Quick way to return to login
+            window.location.reload(); 
         } catch (error) {
-            alert("Registration Failed: " + (error.response?.data?.detail || "Error"));
+            console.error("Registration endpoint fail:", error);
+            if(error.response) {
+                console.error("Response data:", error.response.data);
+            }
+            alert("Registration Failed: " + (error.response?.data?.detail || error.message || "Error"));
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -65,7 +73,7 @@ const Register = ({ role }) => {
                         <select
                             required
                             className="w-full bg-[#0b0e14] p-3 rounded-xl border border-slate-700 text-white focus:border-emerald-500 focus:outline-none appearance-none cursor-pointer"
-                            onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
+                            onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
                         >
                             <option value="">Blood Type</option>
                             <option value="A+">A+</option>
@@ -80,7 +88,7 @@ const Register = ({ role }) => {
                     </div>
                     <div className="relative">
                         <input type="text" placeholder="Emergency Phone (e.g. 9876543210)" required className="w-full bg-[#0b0e14] p-3 rounded-xl border border-slate-700 text-white focus:border-emerald-500 focus:outline-none"
-                            onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })} />
+                            onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })} />
                     </div>
                 </div>
 
@@ -109,9 +117,10 @@ const Register = ({ role }) => {
 
                 <button
                     type="submit"
-                    className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all duration-300 active:scale-95"
+                    disabled={isLoading}
+                    className={`w-full py-4 bg-gradient-to-r ${isLoading ? "from-slate-600 to-slate-700 cursor-not-allowed" : "from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"} text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all duration-300 active:scale-95`}
                 >
-                    Securely Register on BioChain
+                    {isLoading ? "Creating Identity on BioChain..." : "Securely Register on BioChain"}
                 </button>
             </form>
         </div>

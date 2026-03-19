@@ -1,20 +1,85 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from './config';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity, FileText, User, Heart, Phone, Clock,
     Shield, Thermometer, Droplet, Weight, Users,
     ClipboardPlus, Stethoscope, AlertOctagon, Search,
-    Zap, ArrowLeft, X
+    Zap, ArrowLeft, X, ChevronRight, Filter, AlertCircle,
+    CheckCircle2, CheckCircle, Plus, Calendar, Briefcase, MapPin, Building, Server
 } from 'lucide-react';
+import IssueRecordModal from './components/IssueRecordModal';
 
-function Dashboard({ role, userData }) {
+
+function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     // --- NEW STATE: TRACK WHICH PATIENT IS OPEN ---
-    const [selectedPatient, setSelectedPatient] = useState(null);
+    // const [selectedPatient, setSelectedPatient] = useState(null); // Managed by App.jsx
+    const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+    const [selectedHistoryRecord, setSelectedHistoryRecord] = useState(null);
+    const [patientRecords, setPatientRecords] = useState([]); // <-- NEW STATE FOR REAL RECORDS
+    const [appointments, setAppointments] = useState([]);
+    const [approvalInputs, setApprovalInputs] = useState({}); // To store date/time for approval
+
+    // Doctor ki asli appointments fetch karne ka logic
+    useEffect(() => {
+        if (role?.includes('DOCTOR') && userData?.wallet_address) {
+            const fetchAppointments = async () => {
+                try {
+                    const res = await axios.get(`${API_BASE_URL}/appointments/doctor/${userData.wallet_address}`);
+                    setAppointments(res.data.appointments || []);
+                } catch (error) {
+                    console.error("Failed to fetch appointments:", error);
+                }
+            };
+            fetchAppointments();
+        }
+    }, [role, userData]);
+
+    const handleApprove = async (appId) => {
+        const data = approvalInputs[appId];
+        if (!data?.date || !data?.time) {
+            alert("⚠️ Please select both Date and Time to approve this appointment.");
+            return;
+        }
+        
+        try {
+            await axios.put(`${API_BASE_URL}/appointments/approve/${appId}`, {
+                appointment_date: data.date,
+                appointment_time: data.time
+            });
+            // Refresh the list after approval
+            const res = await axios.get(`${API_BASE_URL}/appointments/doctor/${userData.wallet_address}`);
+            setAppointments(res.data.appointments || []);
+        } catch (error) {
+            console.error("Approval failed:", error);
+            alert("Failed to approve appointment.");
+        }
+    };
+
+    // --- NEW: Function to manually fetch patient records ---
+    const fetchPatientRecords = async () => {
+        if (!selectedPatient) return;
+        try {
+            const pid = selectedPatient.email || selectedPatient.id;
+            const res = await axios.get(`${API_BASE_URL}/record/patient/${pid}`);
+            if (res.data.status === "Success") {
+                setPatientRecords(res.data.records);
+            }
+        } catch (err) {
+            console.error("Error fetching patient records:", err);
+        }
+    };
+
+    // Fetch records when a patient is selected
+    useEffect(() => {
+        if (selectedPatient) {
+            fetchPatientRecords();
+        }
+    }, [selectedPatient]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -82,31 +147,36 @@ function Dashboard({ role, userData }) {
             <div className="max-w-7xl mx-auto">
 
                 {/* --- HEADER --- */}
-                <div className="flex justify-between items-end mb-8 border-b border-slate-800 pb-6">
+                <div className="flex justify-between items-end mb-8 border-b border-slate-800 pb-6 print:hidden">
                     <div className="flex items-center gap-4">
                         {selectedPatient ? (
-                            // IF VIEWING PATIENT: Show Back Button
                             <button onClick={() => setSelectedPatient(null)} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition">
                                 <ArrowLeft size={24} className="text-slate-200" />
                             </button>
                         ) : (
-                            // DEFAULT ICON
-                            <div className={`p-3 rounded-2xl ${role === 'DOCTOR' ? 'bg-blue-600/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                                {role === 'DOCTOR' ? <Stethoscope size={32} /> : <Activity size={32} />}
+                            <div className={`p-3 rounded-2xl ${role === 'DOCTOR' ? 'bg-blue-600/20 text-blue-400' : role === 'HOSPITAL_ADMIN' ? 'bg-purple-600/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                {role === 'DOCTOR' ? <Stethoscope size={32} /> : role === 'HOSPITAL_ADMIN' ? <Building size={32} /> : <Activity size={32} />}
                             </div>
                         )}
 
                         <div>
+                            {/* DYNAMIC TITLE BASED ON ROLE */}
                             <h1 className="text-3xl font-bold tracking-tight">
-                                {selectedPatient ? `Patient: ${selectedPatient.name}` : (role === 'DOCTOR' ? `Dr. ${userData?.name || 'Strange'}` : userData?.name || "Yash Vijay Singh")}
+                                {selectedPatient ? `Patient: ${selectedPatient.name}` : 
+                                 role === 'DOCTOR' ? `Dr. ${userData?.name || 'Doctor'}` : 
+                                 role === 'HOSPITAL_ADMIN' ? `${userData?.hospital_name || 'Hospital Network'}` : 
+                                 userData?.name || "Patient Profile"}
                             </h1>
                             <p className="text-slate-400 text-sm">
-                                {selectedPatient ? 'Viewing Live Clinical Data' : (role === 'DOCTOR' ? 'Clinical Workspace • BioChain Network' : 'Manage your decentralized health ecosystem.')}
+                                {selectedPatient ? 'Viewing Live Clinical Data' : 
+                                 role === 'DOCTOR' ? 'Clinical Workspace • BioChain Network' : 
+                                 role === 'HOSPITAL_ADMIN' ? 'Enterprise Node Control Center' : 
+                                 'Manage your decentralized health ecosystem.'}
                             </p>
                         </div>
                     </div>
-
-                    {role === 'DOCTOR' && !selectedPatient && (
+ 
+                    {role?.includes('DOCTOR') && !selectedPatient && (
                         <div className="flex gap-3">
                             <div className="relative">
                                 <Search className="absolute left-3 top-3 text-slate-500" size={18} />
@@ -120,33 +190,98 @@ function Dashboard({ role, userData }) {
                 </div>
 
                 {/* =========================================================
-            LOGIC BRANCHING:
-            1. If Patient -> Show OWN Vitals
-            2. If Doctor & NO Patient Selected -> Show DOCTOR Vitals
-            3. If Doctor & PATIENT Selected -> Show PATIENT Vitals
-           ========================================================= */}
+                    1. ADMIN DASHBOARD (Only visible to HOSPITAL_ADMIN)
+                   ========================================================= */}
+                {role === 'HOSPITAL_ADMIN' && (
+                    <div className="space-y-8 print:hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
+                                <div className="flex justify-between mb-4">
+                                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400"><Stethoscope size={20} /></div>
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Clinical Staff</span>
+                                </div>
+                                <h3 className="text-3xl font-bold">24</h3>
+                                <p className="text-xs text-emerald-400 mt-2">+2 this month</p>
+                            </div>
+                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
+                                <div className="flex justify-between mb-4">
+                                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400"><Users size={20} /></div>
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Patients</span>
+                                </div>
+                                <h3 className="text-3xl font-bold">1,402</h3>
+                                <p className="text-xs text-slate-500 mt-2">Mapped to your node</p>
+                            </div>
+                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
+                                <div className="flex justify-between mb-4">
+                                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400"><Server size={20} /></div>
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Node Status</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                                    <h3 className="text-xl font-bold text-emerald-400">Synced to Mainnet</h3>
+                                </div>
+                            </div>
+                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
+                                <div className="flex justify-between mb-4">
+                                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400"><Shield size={20} /></div>
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Smart Contracts</span>
+                                </div>
+                                <h3 className="text-3xl font-bold text-white">8,432</h3>
+                                <p className="text-xs text-slate-500 mt-2">Transactions executed</p>
+                            </div>
+                        </div>
 
-                {/* 1. VITALS SECTION */}
-                <div className="mb-8">
-                    <h3 className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <Activity size={16} /> {selectedPatient ? "Patient Live Monitor" : "Live Personal Health Monitor"}
-                    </h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Stethoscope size={18} className="text-purple-400" /> Quick Actions
+                                </h3>
+                                <div className="space-y-3">
+                                    <button className="w-full bg-slate-800 hover:bg-purple-900/40 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition group border border-slate-700 hover:border-purple-500/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition"><User size={18} /></div>
+                                            Register New Doctor
+                                        </div>
+                                        <ArrowLeft size={16} className="rotate-180 opacity-50 group-hover:opacity-100" />
+                                    </button>
+                                    <button className="w-full bg-slate-800 hover:bg-blue-900/40 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition group border border-slate-700 hover:border-blue-500/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition"><FileText size={18} /></div>
+                                            View Audit Logs
+                                        </div>
+                                        <ArrowLeft size={16} className="rotate-180 opacity-50 group-hover:opacity-100" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-                    {/* Logic to determine WHICH vitals to show */}
-                    <VitalsWidget
-                        title={selectedPatient ? "Patient" : "My"}
-                        values={selectedPatient || role === 'PATIENT' ?
-                            { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : // Patient Vitals
-                            { hr: 65, spo2: 99, bp: "118/76", weight: 75 }   // Doctor Stats
-                        }
-                    />
-                </div>
+                {/* =========================================================
+                    2. VITALS SECTION (Visible to Patient or when Doctor is viewing a Patient)
+                   ========================================================= */}
+                {role !== 'HOSPITAL_ADMIN' && (
+                    <div className="mb-8 print:hidden">
+                        <h3 className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+                            <Activity size={16} /> {selectedPatient ? "Patient Live Monitor" : "Live Personal Health Monitor"}
+                        </h3>
+
+                        {/* Logic to determine WHICH vitals to show */}
+                         <VitalsWidget
+                            title={selectedPatient ? "Patient" : "My"}
+                            values={selectedPatient || role === 'PATIENT' ?
+                                { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : 
+                                { hr: 65, spo2: 99, bp: "118/76", weight: 75 }  
+                            }
+                        />
+                    </div>
+                )}
 
                 {/* =========================================================
             DOCTOR'S MAIN DASHBOARD (When NO patient is selected)
            ========================================================= */}
-                {role === 'DOCTOR' && !selectedPatient && (
-                    <div className="space-y-8 border-t border-slate-800 pt-8">
+                {role?.includes('DOCTOR') && !selectedPatient && (
+                    <div className="space-y-8 border-t border-slate-800 pt-8 print:hidden">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
                             <Shield size={24} className="text-blue-400" /> Clinical Workspace
                         </h3>
@@ -183,72 +318,101 @@ function Dashboard({ role, userData }) {
                             </div>
                         </div>
 
-                        {/* TODAY'S QUEUE */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl lg:col-span-2">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <Users size={18} className="text-blue-400" /> Today's Appointments
+                        {/* --- 3. DOCTOR'S QUEUE (Dynamic Appointments) --- */}
+                        <div className="space-y-8 mt-8">
+                            
+                            {/* Section A: Pending Requests (Needs Action) */}
+                            <div className="bg-[#121620] rounded-3xl p-6 border border-yellow-500/30 shadow-xl">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                                    <Clock size={18} className="text-yellow-400" /> Pending Consultation Requests
                                 </h3>
-                                <div className="space-y-3">
-
-                                    {/* --- THE PATIENT ITEM WITH WORKING BUTTON --- */}
-                                    <div className="bg-blue-900/10 p-4 rounded-xl border border-blue-500/20 flex items-center justify-between cursor-pointer transition">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center font-bold">YV</div>
-                                            <div>
-                                                <h4 className="font-bold text-white">Yash Vijay Singh</h4>
-                                                <p className="text-xs text-slate-500">Check-up • 10:00 AM</p>
+                                
+                                <div className="space-y-4">
+                                    {appointments.filter(a => a.status === 'Pending').length > 0 ? (
+                                        appointments.filter(a => a.status === 'Pending').map((app) => (
+                                            <div key={app._id} className="bg-yellow-500/5 p-5 rounded-2xl border border-yellow-500/20 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 transition hover:bg-yellow-500/10">
+                                                <div>
+                                                    <h4 className="font-bold text-white text-lg">{app.patient_name}</h4>
+                                                    <p className="text-sm text-slate-400 mt-1">Reason: <span className="italic text-slate-300">"{app.reason}"</span></p>
+                                                </div>
+                                                
+                                                {/* Approval Controls */}
+                                                <div className="flex flex-wrap items-center gap-3 bg-[#0b0e14] p-2 rounded-xl border border-slate-800">
+                                                    <input 
+                                                        type="date" 
+                                                        className="bg-transparent text-sm text-white outline-none border-r border-slate-700 pr-3 cursor-pointer [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                                                        onChange={(e) => setApprovalInputs({...approvalInputs, [app._id]: {...approvalInputs[app._id], date: e.target.value}})}
+                                                    />
+                                                    <input 
+                                                        type="time" 
+                                                        className="bg-transparent text-sm text-white outline-none border-r border-slate-700 pr-3 cursor-pointer [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                                                        onChange={(e) => setApprovalInputs({...approvalInputs, [app._id]: {...approvalInputs[app._id], time: e.target.value}})}
+                                                    />
+                                                    <button 
+                                                        onClick={() => handleApprove(app._id)}
+                                                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1"
+                                                    >
+                                                        <CheckCircle size={14} /> Approve
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <button
-                                            onClick={() => setSelectedPatient({ name: "Yash Vijay Singh", id: "0xe94...2266" })}
-                                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold transition"
-                                        >
-                                            Open Profile
-                                        </button>
-                                    </div>
-
-                                    {/* Mock Item 2 */}
-                                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex items-center justify-between opacity-60">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center font-bold">AJ</div>
-                                            <div>
-                                                <h4 className="font-bold text-white">Adonis Jeswin</h4>
-                                                <p className="text-xs text-slate-500">Follow-up • 10:30 AM</p>
-                                            </div>
-                                        </div>
-                                        <span className="text-xs text-slate-500">Waiting</span>
-                                    </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-slate-500 italic p-4 text-center">No pending requests right now.</p>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* QUICK ACTIONS */}
+                            {/* Section B: Scheduled Appointments (Approved) */}
                             <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <Zap size={18} className="text-amber-400" /> Quick Actions
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                                    <CheckCircle size={18} className="text-emerald-400" /> Scheduled Appointments
                                 </h3>
-                                <div className="space-y-3">
-                                    <button className="w-full bg-slate-800 hover:bg-slate-700 p-3 rounded-xl flex items-center gap-3 text-sm font-bold text-slate-300 transition">
-                                        <div className="bg-blue-500 p-2 rounded-lg text-white"><FileText size={16} /></div> Issue Rx
-                                    </button>
-                                    <button className="w-full bg-slate-800 hover:bg-slate-700 p-3 rounded-xl flex items-center gap-3 text-sm font-bold text-slate-300 transition">
-                                        <div className="bg-purple-500 p-2 rounded-lg text-white"><Stethoscope size={16} /></div> Lab Test
-                                    </button>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {appointments.filter(a => a.status === 'Scheduled').length > 0 ? (
+                                        appointments.filter(a => a.status === 'Scheduled').map((app) => (
+                                            <div key={app._id} className="bg-[#0b0e14] p-5 rounded-2xl border border-slate-800 flex items-center justify-between group hover:border-blue-500/30 transition">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-blue-900/40 text-blue-400 rounded-full flex items-center justify-center font-bold border border-blue-500/20">
+                                                        {app.patient_name.substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-white">{app.patient_name}</h4>
+                                                        <p className="text-xs text-emerald-400 font-medium mt-1">
+                                                            {app.appointment_date} at {app.appointment_time}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setSelectedPatient({ name: app.patient_name, email: app.patient_email })}
+                                                    className="bg-slate-800 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition opacity-0 group-hover:opacity-100 shadow-lg"
+                                                >
+                                                    Open Profile
+                                                </button>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-full text-center p-8 border border-slate-800 border-dashed rounded-2xl">
+                                            <p className="text-sm text-slate-500">You don't have any scheduled appointments.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
 
+
                 {/* =========================================================
-            PATIENT DETAIL VIEW (Shown when Doctor clicks a patient OR if role is Patient)
+            PATIENT DETAIL VIEW (MAIN CARD) - FOR PATIENTS ONLY
            ========================================================= */}
-                {(selectedPatient || role === 'PATIENT') && data && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 border-t border-slate-800 pt-8">
+                {role === 'PATIENT' && data && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 border-t border-slate-800 pt-8 print:hidden">
                         <motion.div className="lg:col-span-2 bg-[#121620] rounded-3xl p-8 border border-slate-800 shadow-xl">
                             <div className="flex justify-between items-start mb-8">
                                 <div>
-                                    <h2 className="text-3xl font-bold text-white mb-1">{selectedPatient ? selectedPatient.name : userData?.name}</h2>
+                                    <h2 className="text-3xl font-bold text-white mb-1">{userData?.name || "Patient"}</h2>
                                     <div className="flex items-center gap-2 text-slate-500 text-xs font-mono bg-black/20 px-2 py-1 rounded w-fit">
                                         <Shield size={12} className="text-emerald-500" />
                                         {data.email_hash?.substring(0, 40) || '0x...'}...
@@ -289,6 +453,249 @@ function Dashboard({ role, userData }) {
                             </div>
                         </motion.div>
                     </div>
+                )}
+                
+                {/* --- 4. DOCTOR VIEWING PATIENT (The Missing Grid!) --- */}
+                {role?.includes('DOCTOR') && selectedPatient && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 border-t border-slate-800 pt-8 print:hidden">
+                        
+                        {/* Profile Info */}
+                        <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+                            <h3 className="text-2xl font-bold text-white mb-1">{selectedPatient.name}</h3>
+                            <p className="text-xs text-emerald-500 font-mono mb-6 flex items-center gap-1">
+                                <Shield size={12}/> ACTIVE PATIENT
+                            </p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-[#0b0e14] p-3 rounded-xl border border-slate-800">
+                                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Heart size={12}/> Blood Type</p>
+                                    <p className="font-bold text-white">O+ (Positive)</p>
+                                </div>
+                                <div className="bg-[#0b0e14] p-3 rounded-xl border border-slate-800">
+                                    <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><AlertOctagon size={12}/> Allergies</p>
+                                    <p className="font-bold text-white">Penicillin</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions (Issue Rx) */}
+                        <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+                                <Zap size={18} className="text-yellow-400" /> Quick Actions
+                            </h3>
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={() => setIsRecordModalOpen(true)} 
+                                    className="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl flex items-center gap-3 text-sm font-bold text-white transition shadow-lg shadow-blue-900/20 group"
+                                >
+                                    <FileText size={20} className="group-hover:scale-110 transition-transform" /> 
+                                    Issue Medical Record (Rx)
+                                </button>
+                                
+                                <button className="w-full bg-slate-800 p-4 rounded-xl flex items-center gap-3 text-sm font-bold text-slate-400 cursor-not-allowed border border-slate-700">
+                                    <Stethoscope size={20} /> Request Lab Test
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Recent Activity */}
+                        <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Activity size={16} /> Recent Activity
+                            </h3>
+                            <div className="relative pl-4 border-l-2 border-slate-800 space-y-6">
+                                <div className="relative">
+                                    <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-[#121620]"></div>
+                                    <h4 className="text-sm font-bold text-white">Vitals Synced</h4>
+                                    <p className="text-xs text-slate-500 mt-1">Automated IoT Check via BioHub</p>
+                                    <p className="text-[10px] text-slate-600 mt-1">Just now</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+
+                {/* --- 5. PATIENT CLINICAL HISTORY (NEW) --- */}
+                {role?.includes('DOCTOR') && selectedPatient && (
+                    <div className="mt-8 bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl print:hidden">
+                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <FileText size={20} className="text-blue-400" /> Patient Clinical History
+                        </h3>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-slate-800 text-xs text-slate-500 uppercase tracking-wider">
+                                        <th className="pb-3 px-4">Date</th>
+                                        <th className="pb-3 px-4">Record Title</th>
+                                        <th className="pb-3 px-4">Source / Issued By</th>
+                                        <th className="pb-3 px-4 text-center">Web3 Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    {patientRecords.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="4" className="py-8 text-center text-slate-500">
+                                                No clinical history found for this patient.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        patientRecords.map((record) => (
+                                            <tr key={record._id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition">
+                                                <td className="py-4 px-4 text-slate-300">
+                                                    {new Date(record.timestamp).toLocaleDateString()}
+                                                </td>
+                                                <td className="py-4 px-4 font-bold text-white">{record.title}</td>
+                                                <td className="py-4 px-4 text-slate-400">
+                                                    {record.isSelfUploaded ? (
+                                                        <span className="bg-blue-500/10 text-blue-400 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                            Self-Added
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max">
+                                                            <Shield size={10}/> {record.doctor_name 
+                                                                ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`) 
+                                                                : `Dr. ${record.doctor_wallet?.substring(0, 6)}...`}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="py-4 px-4 text-center">
+                                                    <button 
+                                                        onClick={() => setSelectedHistoryRecord({
+                                                            title: record.title,
+                                                            date: new Date(record.timestamp).toLocaleDateString(),
+                                                            source: record.isSelfUploaded 
+                                                                ? "Self-Added" 
+                                                                : (record.doctor_name 
+                                                                    ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`) 
+                                                                    : `Dr. ${record.doctor_wallet?.substring(0, 6)}...`),
+                                                            hospital: record.hospital_name,
+                                                            diagnosis: record.diagnosis,
+                                                            ipfs_hashes: record.ipfs_hashes || (record.ipfs_hash ? [record.ipfs_hash] : []) // Handle both new array and old single string
+                                                        })} 
+                                                        className="text-slate-300 hover:text-white font-bold text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition"
+                                                    >
+                                                        Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- ISSUE RX MODAL --- */}
+                {role?.includes('DOCTOR') && selectedPatient && (
+                    <IssueRecordModal 
+                        isOpen={isRecordModalOpen} 
+                        onClose={() => setIsRecordModalOpen(false)} 
+                        patient={selectedPatient} 
+                        doctorData={userData} 
+                        onSuccess={fetchPatientRecords}
+                    />
+                )}
+
+                {/* --- EXTENDED RECORD VIEW MODAL --- */}
+                {selectedHistoryRecord && (
+                    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-8 print:static print:overflow-visible print:bg-white print:p-0">
+                        <div className="flex min-h-full items-start justify-center print:block print:min-h-0">
+                            <div className="bg-[#121620] print:bg-white border border-slate-700 print:border-none w-full max-w-3xl rounded-3xl p-8 shadow-2xl print:p-0 print:shadow-none relative mt-4 mb-10 print:m-0">
+                            <button onClick={() => setSelectedHistoryRecord(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition">
+                                <X size={24} />
+                            </button>
+                            <div>
+                                <div className="flex justify-between items-start border-b border-slate-800 pb-6 mb-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                                            <Activity className="text-emerald-500" /> BioChain Medical Record
+                                        </h2>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-bold text-white">{selectedHistoryRecord.hospital}</p>
+                                        <p className="text-xs text-slate-500">{selectedHistoryRecord.date}</p>
+                                    </div>
+                                </div>
+                                <div className="mb-6">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Record Title</h4>
+                                    <p className="text-lg font-bold text-white">{selectedHistoryRecord.title}</p>
+                                </div>
+                                <div className="mb-8">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Clinical Notes</h4>
+                                    <div className="bg-[#0b0e14] p-4 rounded-xl border border-slate-800 text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                        {selectedHistoryRecord.diagnosis}
+                                    </div>
+                                </div>
+                                
+                                {/* ATTACHED DOCUMENTS SECTION */}
+                                {selectedHistoryRecord.ipfs_hashes && selectedHistoryRecord.ipfs_hashes.length > 0 && (
+                                    <div className="mb-8 border-t border-slate-800 pt-6">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <FileText size={16} className="text-blue-400"/> Attached Documents ({selectedHistoryRecord.ipfs_hashes.length})
+                                        </h4>
+                                        <div className="space-y-6">
+                                            {selectedHistoryRecord.ipfs_hashes.map((hash, idx) => (
+                                                <div key={idx} className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900/50">
+                                                    <div className="bg-slate-800/80 px-4 py-2 flex justify-between items-center border-b border-slate-700">
+                                                        <span className="text-xs font-bold text-slate-400">Document {idx + 1}</span>
+                                                        <a 
+                                                            href={`https://ipfs.io/ipfs/${hash}`}
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold"
+                                                        >
+                                                            Open Full Screen <ChevronRight size={14} />
+                                                        </a>
+                                                    </div>
+                                                    <div className="h-96 w-full relative group bg-[#0b0e14]">
+                                                        {/* Loading/Fallback Layer */}
+                                                        <div className="absolute inset-0 flex items-center justify-center text-slate-600 flex-col gap-2 z-0">
+                                                            <Activity className="animate-spin text-blue-500" />
+                                                            <span className="text-xs font-bold">Loading from IPFS...</span>
+                                                        </div>
+                                                        
+                                                        {/* Attempt to load as an image first. If it fails (e.g., PDF), the onError handler hides it,
+                                                            and the iframe behind it becomes visible. We use object-cover/contain to fit the image perfectly. */}
+                                                        <div className="absolute inset-0 z-10 flex items-center justify-center p-2">
+                                                            <iframe 
+                                                                src={`https://ipfs.io/ipfs/${hash}`}
+                                                                className="w-full h-full border-none"
+                                                                style={{ backgroundColor: 'transparent' }}
+                                                                title={`Medical Document ${idx + 1} Fallback`}
+                                                            />
+                                                            {/* We place the img on top. If it's a valid image, it covers the iframe. If not, it's hidden. */}
+                                                            <img 
+                                                                src={`https://ipfs.io/ipfs/${hash}`}
+                                                                alt={`Medical Document ${idx + 1}`}
+                                                                className="absolute inset-0 w-full h-full object-contain bg-[#0b0e14] z-20"
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none'; // Hide img if it's a PDF/unsupported
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        
+                                                        {/* Full Screen View Button Overlay */}
+                                                        <a href={`https://ipfs.io/ipfs/${hash}`} target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition shadow-lg z-30 flex items-center gap-2">
+                                                            Open Full Screen <ChevronRight size={16} />
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-end border-t border-slate-800 pt-6">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Source</h4>
+                                        <p className="text-sm font-bold text-white">{selectedHistoryRecord.source}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 )}
 
             </div>

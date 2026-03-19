@@ -13,15 +13,16 @@ contract BioChainNetwork {
 
     enum Role { NONE, PATIENT, DOCTOR, HOSPITAL_ADMIN, SUPER_ADMIN }
 
-    // --- NEW: Hospital Network Structure ---
+    // --- UPDATED: Hospital Network Structure (Added staffList) ---
     struct Hospital {
         address adminWallet;
         string name;
         string registrationNumber;
         bool isActive;
+        address[] staffList; // Tracks all doctors in this hospital
     }
 
-    // --- YOUR CLINICAL STRUCTURES (Preserved & Upgraded) ---
+    // --- YOUR CLINICAL STRUCTURES (Preserved) ---
     struct MedicalProfile {
         string bloodType;
         string allergies;
@@ -56,7 +57,7 @@ contract BioChainNetwork {
     }
 
     struct Doctor {
-        address hospitalAdmin;  // <-- NEW: Links doc to a specific hospital
+        address hospitalAdmin;  // Links doc to a specific hospital
         string name;
         string licenseId; 
         string specialization;
@@ -75,11 +76,11 @@ contract BioChainNetwork {
     // 2. STATE VARIABLES
     // ==========================================
     
-    address public superAdmin; // The master deployer (Replaces the single 'dean')
+    address public superAdmin; // The master deployer
     uint256 private nextRecordId;
 
     mapping(address => bool) public authorizedRelayers; 
-    mapping(address => Hospital) public hospitals; // <-- NEW: Multi-org tracking
+    mapping(address => Hospital) public hospitals; 
     mapping(address => Doctor) public doctors;
     mapping(address => Patient) public patients;
     mapping(address => Role) public roles;
@@ -92,6 +93,9 @@ contract BioChainNetwork {
     // ACCESS BRIDGE: Patient -> Doctor -> Access Granted?
     mapping(address => mapping(address => bool)) public hasAccess;
 
+    // --- NEW: Global Emergency Tracker ---
+    mapping(address => bool) public isSOSActive;
+
     // ==========================================
     // 3. EVENTS (Audit Trail)
     // ==========================================
@@ -101,6 +105,7 @@ contract BioChainNetwork {
     event RecordAdded(uint256 indexed recordId, address indexed patient, address indexed doctor);
     event ReferralCreated(address indexed patient, address indexed from, address indexed to);
     event SOSAlert(address indexed patient, string severity, uint256 time);
+    event SOSResolved(address indexed patient, uint256 time);
     event PrescriptionIssued(address indexed patient, address indexed doctor);
 
     // ==========================================
@@ -141,53 +146,85 @@ contract BioChainNetwork {
         authorizedRelayers[_relayer] = _status;
     }
 
-    // <-- NEW: SuperAdmin registers a Hospital -->
+    // <-- UPDATED: Gas-optimized initialization -->
     function registerHospital(address _adminWallet, string memory _name, string memory _regNumber) public onlySuperAdmin {
         require(!hospitals[_adminWallet].isActive, "Hospital exists");
-        hospitals[_adminWallet] = Hospital(_adminWallet, _name, _regNumber, true);
+        
+        Hospital storage newHospital = hospitals[_adminWallet];
+        newHospital.adminWallet = _adminWallet;
+        newHospital.name = _name;
+        newHospital.registrationNumber = _regNumber;
+        newHospital.isActive = true;
+        // staffList array is automatically initialized empty
+
         roles[_adminWallet] = Role.HOSPITAL_ADMIN;
         emit HospitalRegistered(_adminWallet, _name);
     }
 
-    // <-- UPDATED: HospitalAdmin adds a Doctor (Not the Dean) -->
+    // <-- UPDATED: Pushes doctor to staffList -->
     function addDoctor(address _wallet, string memory _name, string memory _license, string memory _spec) public onlyHospitalAdmin {
         doctors[_wallet] = Doctor(msg.sender, _name, _license, _spec, true);
         roles[_wallet] = Role.DOCTOR;
+        
+        hospitals[msg.sender].staffList.push(_wallet); // Track the staff
+        
         emit DoctorStatusChanged(_wallet, msg.sender, true);
+    }
+
+    // <-- NEW: Revoke a rogue or retiring doctor -->
+    function deactivateDoctor(address _wallet) public onlyHospitalAdmin {
+        require(doctors[_wallet].hospitalAdmin == msg.sender, "Doctor not from your hospital");
+        doctors[_wallet].isActive = false;
+        roles[_wallet] = Role.NONE; // Demote role
+        emit DoctorStatusChanged(_wallet, msg.sender, false);
     }
 
     // ==========================================
     // 6. ONBOARDING (Web 2.5 Relayer Logic)
     // ==========================================
     
+    // <-- UPDATED: Gas-optimized struct initialization -->
     function registerPatient(
         address _pWallet, string memory _name, string memory _idHash, 
         string memory _blood, string memory _allergies, string memory _emergency, string memory _pHash
     ) public onlyAuthorizedRelayer {
         require(!patients[_pWallet].exists, "Registered");
 
-        MedicalProfile memory profile = MedicalProfile(_blood, _allergies, _emergency, _pHash, block.timestamp);
-        uint256[] memory emptyIds;
+        Patient storage p = patients[_pWallet];
+        p.name = _name;
+        p.identityHash = _idHash;
+        p.profile = MedicalProfile(_blood, _allergies, _emergency, _pHash, block.timestamp);
+        p.exists = true;
 
-        patients[_pWallet] = Patient(_name, _idHash, profile, emptyIds, true);
         roles[_pWallet] = Role.PATIENT;
 
         emit PatientRegistered(_pWallet, _name, _idHash);
     }
 
     // ==========================================
-    // 7. CLINICAL OPERATIONS (Your Preserved Logic)
+    // 7. CLINICAL OPERATIONS (Emergency & Data)
     // ==========================================
 
+    // <-- UPDATED: Emergency Override Logic -->
     function triggerSOS(string memory _severity) public {
         require(patients[msg.sender].exists, "Patient only");
+        isSOSActive[msg.sender] = true; // Bypasses access checks
         emit SOSAlert(msg.sender, _severity, block.timestamp);
     }
 
+    // <-- NEW: Resolve Emergency -->
+    function resolveSOS() public {
+        require(patients[msg.sender].exists, "Patient only");
+        isSOSActive[msg.sender] = false; // Restores privacy lock
+        emit SOSResolved(msg.sender, block.timestamp);
+    }
+
+    // <-- UPDATED: Emergency Access Check -->
     function addMedicalRecord(
         address _pWallet, string memory _hash, string memory _type, string memory _cat, string memory _notes
     ) public onlyActiveDoctor {
-        require(hasAccess[_pWallet][msg.sender], "Access Denied");
+        // Doc needs standard access OR an active emergency to upload life-saving reports
+        require(hasAccess[_pWallet][msg.sender] || isSOSActive[_pWallet], "Access Denied");
 
         uint256 rId = nextRecordId;
         allRecords[rId] = Record(rId, _hash, _type, _cat, _notes, msg.sender, block.timestamp);
@@ -208,8 +245,9 @@ contract BioChainNetwork {
         emit ReferralCreated(_pWallet, msg.sender, _targetDoc);
     }
 
+    // <-- UPDATED: Emergency Access Check -->
     function issuePrescription(address _patient, string memory _diagnosis, string memory _ipfsHash) public onlyActiveDoctor {
-        require(hasAccess[_patient][msg.sender], "Access Denied");
+        require(hasAccess[_patient][msg.sender] || isSOSActive[_patient], "Access Denied");
         
         patientPrescriptions[_patient].push(Prescription(
             msg.sender, 
@@ -235,6 +273,18 @@ contract BioChainNetwork {
     // 8. DATA RETRIEVAL (Getters)
     // ==========================================
     
+    // <-- UPDATED: Added Access Lock -->
+    function getProfile(address _pWallet) public view returns (MedicalProfile memory) {
+        // Patient, Authorized Doctor, or ANY Doctor during an SOS can view
+        require(
+            msg.sender == _pWallet || 
+            hasAccess[_pWallet][msg.sender] || 
+            isSOSActive[_pWallet], 
+            "Access Denied"
+        );
+        return patients[_pWallet].profile;
+    }
+
     function getPatientRecords(address _pWallet) public view returns (uint256[] memory) {
         return patients[_pWallet].recordIds;
     }
@@ -243,15 +293,16 @@ contract BioChainNetwork {
         return allRecords[_id];
     }
 
-    function getProfile(address _pWallet) public view returns (MedicalProfile memory) {
-        return patients[_pWallet].profile;
-    }
-
     function getPrescriptions(address _patient) public view returns (Prescription[] memory) {
         return patientPrescriptions[_patient];
     }
 
     function getReferrals(address _patient) public view returns (Referral[] memory) {
         return patientReferrals[_patient];
+    }
+    
+    // <-- NEW: Helper to get all doctors in a hospital -->
+    function getHospitalStaff(address _hospitalAdmin) public view returns (address[] memory) {
+        return hospitals[_hospitalAdmin].staffList;
     }
 }
