@@ -7,7 +7,7 @@ const PatientList = () => {
     // --- MOCK DATABASE (Simulating the Blockchain) ---
     const allPatients = [
         { id: "0xe94...2266", name: "Yash Vijay Singh", age: 24, blood: "B+", status: "Active", lastVisit: "Today" },
-        { id: "0x42a...9912", name: "Adonis Jeswin", age: 26, blood: "O-", status: "Critical", lastVisit: "2 days ago" },
+        { id: "0x42a...9912", name: "John Smith", age: 32, blood: "O-", status: "Critical", lastVisit: "2 days ago" },
         { id: "0x12c...8841", name: "Sarah Connor", age: 35, blood: "A+", status: "Discharged", lastVisit: "1 month ago" },
         { id: "0x77b...1120", name: "Tony Stark", age: 48, blood: "AB+", status: "Active", lastVisit: "Yesterday" },
         { id: "0x99a...3311", name: "Steve Rogers", age: 98, blood: "O+", status: "In-Patient", lastVisit: "Ongoing" },

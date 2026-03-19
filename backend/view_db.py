@@ -7,24 +7,24 @@ def view_data():
         # 1. Connect to MongoDB
         client = MongoClient("mongodb://localhost:27017")
         db = client.biochain_db
-        patients_collection = db.patients
         
-        # 2. Fetch all patients
-        patients = list(patients_collection.find())
-        
-        if not patients:
-            print("\nℹ️ No patients found in the database.")
-            return
+        # 2. Patients
+        patients = list(db.patients.find())
+        print(f"\n✅ Patients: {len(patients)}")
+        for p in patients:
+            print(f"- {p.get('name')} ({p.get('email')})")
 
-        print(f"\n✅ Found {len(patients)} patients in 'biochain_db':\n")
-        
-        # 3. Print in a readable format
-        for i, patient in enumerate(patients, 1):
-            print(f"--- Patient #{i} ---")
-            # Convert BSON to JSON for pretty printing
-            readable_patient = json.loads(json_util.dumps(patient))
-            print(json.dumps(readable_patient, indent=4))
-            print("-" * 20)
+        # 3. Doctors
+        doctors = list(db.doctors.find())
+        print(f"\n🩺 Doctors: {len(doctors)}")
+        for d in doctors:
+            print(f"- {d.get('name')} ({d.get('wallet_address')})")
+
+        # 4. Hospitals
+        hospitals = list(db.hospitals.find())
+        print(f"\n🏢 Hospitals: {len(hospitals)}")
+        for h in hospitals:
+            print(f"- {h.get('name')} (Admin: {h.get('admin_wallet')})")
 
     except Exception as e:
         print(f"❌ Error connecting to MongoDB: {e}")

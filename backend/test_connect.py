@@ -1,30 +1,72 @@
-import json
-import os
-from web3 import Web3
-from dotenv import load_dotenv
+from pymongo import MongoClient
+from passlib.context import CryptContext
 
-load_dotenv()
+# Database Connection
+client = MongoClient("mongodb://localhost:27017")
+db = client.biochain_db
 
-# 1. Connect
-w3 = Web3(Web3.HTTPProvider(os.getenv("BLOCKCHAIN_URL")))
-print(f"🔌 Connected to Blockchain? {w3.is_connected()}")
+# Password Hasher for the Patient
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-# 2. Load ABI
-try:
-    with open("biochain_abi.json", "r") as f:
-        abi = json.load(f)["abi"]
-    print("✅ ABI Loaded")
-except FileNotFoundError:
-    print("❌ ERROR: biochain_abi.json not found in backend folder!")
-    exit()
+def get_password_hash(password):
+    return pwd_context.hash(password)
 
-# 3. Connect to Contract
-address = os.getenv("CONTRACT_ADDRESS")
-contract = w3.eth.contract(address=address, abi=abi)
+def seed_database():
+    print("🌱 Clearing old database records...")
+    db.hospitals.delete_many({})
+    db.doctors.delete_many({})
+    db.patients.delete_many({})
 
-# 4. Read Data
-try:
-    name = contract.functions.hospitalName().call()
-    print(f"🏥 Success! Connected to: {name}")
-except Exception as e:
-    print(f"❌ Contract Error: {e}")
+    # ==========================================
+    # 1. CREATE A HOSPITAL (The Organization)
+    # ==========================================
+    hospital_admin_wallet = "0xAdminWalletAddressHere1234567890" # Placeholder Admin Wallet
+    
+    hospital = {
+        "admin_wallet": hospital_admin_wallet,
+        "name": "Apollo Spectra",
+        "registration_number": "REG-2026-MUM",
+        "is_active": True
+    }
+    db.hospitals.insert_one(hospital)
+    print(f"🏥 Hospital Created: {hospital['name']}")
+
+    # ==========================================
+    # 2. HIRE A DOCTOR (Linked to the Hospital)
+    # ==========================================
+    # ⚠️ IMPORTANT: Replace this with your ACTUAL MetaMask Wallet Address so you can log in!
+    doctor_wallet = "0x94072243e3344AE3d80509F6Db2e0cb212AdEe79" 
+    
+    doctor = {
+        "wallet_address": doctor_wallet,
+        "name": "Dr. Yash",
+        "license_id": "MD-84758",
+        "specialization": "Neurology",
+        "hospital_admin_wallet": hospital_admin_wallet, # Links Dr. Strange to Apollo
+        "role": "SR_DOCTOR",
+        "is_active": True
+    }
+    db.doctors.insert_one(doctor)
+    print(f"🩺 Doctor Hired: {doctor['name']} (Assigned to {hospital['name']})")
+
+    # ==========================================
+    # 3. REGISTER A PATIENT (Web 2.5 Auth)
+    # ==========================================
+    patient = {
+        "name": "Yash",
+        "email": "yash@biochain.ai",
+        "phone": "+91 9876543210",
+        "address": "Mumbai, Maharashtra, India",
+        "password": get_password_hash("password123"), # Hashed for security
+        "bloodGroup": "O+",
+        "allergies": "Penicillin",
+        "emergencyContact": "+91 9999999999",
+        "idHash": "0xPendingBlockchainHash..." # Will be updated when actually registered on-chain
+    }
+    db.patients.insert_one(patient)
+    print(f"👤 Patient Registered: {patient['name']}")
+
+    print("\n✅ Enterprise Database Seeding Complete!")
+
+if __name__ == "__main__":
+    seed_database()
