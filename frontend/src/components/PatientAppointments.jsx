@@ -82,10 +82,12 @@ const PatientAppointments = ({ userData }) => {
     );
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-5xl mx-auto space-y-6 animate-fade-in-up">
             
-            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl flex justify-between items-center">
-                <div>
+            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl flex justify-between items-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+                
+                <div className="relative z-10">
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         <Calendar className="text-emerald-500" size={28} /> My Appointments
                     </h2>
@@ -93,28 +95,29 @@ const PatientAppointments = ({ userData }) => {
                 </div>
                 <button 
                     onClick={() => setIsBookingModalOpen(true)}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-900/20"
+                    className="relative z-10 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-900/20"
                 >
                     <Plus size={20} /> Request Consult
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 stagger-children animate-fade-in-up">
                 {appointments.length > 0 ? (
                     appointments.map((app, index) => {
                         const isPending = app.status === "Pending";
                         return (
-                            <div key={index} className={`bg-[#121620] rounded-2xl p-6 border shadow-lg transition group relative overflow-hidden ${isPending ? 'border-yellow-500/30 hover:border-yellow-500/50' : 'border-slate-800 hover:border-emerald-500/30'}`}>
+                            <div key={index} className={`bg-[#121620] rounded-3xl p-6 border shadow-xl transition-all group card-hover relative overflow-hidden ${isPending ? 'border-yellow-500/30 hover:border-yellow-500/50' : 'border-slate-800 hover:border-emerald-500/30'}`}>
+                                <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full transition-all duration-500 ${isPending ? 'bg-yellow-500/5 group-hover:bg-yellow-500/10' : 'bg-emerald-500/5 group-hover:bg-emerald-500/10'}`}></div>
                                 
                                 {/* Status Badge */}
-                                <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${isPending ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                <div className={`absolute top-6 right-6 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1.5 shadow-lg ${isPending ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
                                     {isPending ? <Clock3 size={12} /> : <CheckCircle size={12} />} 
                                     {app.status}
                                 </div>
 
-                                <h3 className="text-lg font-bold text-white mb-4 pr-24 line-clamp-1">Dr. {app.doctor_name}</h3>
+                                <h3 className="text-lg font-bold text-white mb-4 pr-24 line-clamp-1 relative z-10 group-hover:text-emerald-400 transition-colors">Dr. {app.doctor_name}</h3>
                                 
-                                <div className="space-y-3 mb-6">
+                                <div className="space-y-4 mb-2 relative z-10">
                                     <p className="text-sm text-slate-400 flex items-center gap-3">
                                         <Building size={16} className="text-slate-500"/> {app.hospital_name}
                                     </p>

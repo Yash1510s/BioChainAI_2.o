@@ -35,7 +35,7 @@ const MyRecords = ({ userData }) => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl flex justify-between items-center print:hidden">
+            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl flex justify-between items-center print:hidden animate-fade-in-up">
                 <div>
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
                         <ShieldCheck size={24} className="text-emerald-500" /> Clinical Vault
@@ -43,20 +43,23 @@ const MyRecords = ({ userData }) => {
                     <p className="text-sm text-slate-400 mt-1">Your decentralized medical history, securely anchored on IPFS.</p>
                 </div>
                 <div className="flex items-center gap-6">
-                    <div className="text-right pr-6">
+                    <div className="text-right pr-6 border-r border-slate-800">
                         <p className="text-3xl font-bold text-white">{records.length}</p>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Records</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total Records</p>
                     </div>
                 </div>
             </div>
 
             {/* RECORDS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:hidden stagger-children animate-fade-in-up">
                 {records.map((record) => (
-                    <div key={record._id} className={`bg-[#121620] rounded-2xl p-6 border transition-all shadow-lg group ${record.isSelfUploaded ? 'border-slate-800 hover:border-blue-500/30' : 'border-slate-800 hover:border-emerald-500/30'}`}>
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`p-3 rounded-xl transition-transform group-hover:scale-110 ${record.isSelfUploaded ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                <FileText size={24} />
+                    <div key={record._id} className={`bg-[#121620] rounded-3xl p-6 border transition-all shadow-xl group card-hover relative overflow-hidden ${record.isSelfUploaded ? 'border-slate-800 hover:border-blue-500/30' : 'border-slate-800 hover:border-emerald-500/30'}`}>
+                        {/* Glow Effect */}
+                        <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full transition-all duration-500 ${record.isSelfUploaded ? 'bg-blue-500/5 group-hover:bg-blue-500/10' : 'bg-emerald-500/5 group-hover:bg-emerald-500/10'}`}></div>
+                        
+                        <div className="flex justify-between items-start mb-6 relative z-10">
+                            <div className={`p-3 rounded-xl transition-all duration-300 ${record.isSelfUploaded ? 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white' : 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white'}`}>
+                                <FileText size={20} />
                             </div>
                             
                             {/* DYNAMIC BADGE: Web3 Verified vs Self-Uploaded */}
@@ -71,31 +74,48 @@ const MyRecords = ({ userData }) => {
                             )}
                         </div>
                         
-                        <h4 className="text-lg font-bold text-white mb-2 line-clamp-1">{record.title}</h4>
+                        <h4 className="text-lg font-bold text-white mb-3 line-clamp-1 relative z-10">{record.title}</h4>
                         
-                        <div className="space-y-2 mb-6">
-                            <p className="text-sm text-slate-400 flex items-center gap-2 line-clamp-1"><Building size={14} className="text-slate-500"/> {record.hospital_name}</p>
-                            <p className="text-sm text-slate-400 flex items-center gap-2 line-clamp-1">
-                                <User size={14} className="text-slate-500"/> 
-                                {record.doctor_name 
-                                    ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`) 
-                                    : `Dr. ${record.doctor_wallet?.substring(0, 6)}...`}
-                            </p>
-                            <p className="text-xs text-slate-500 flex items-center gap-2"><Calendar size={14} /> {new Date(record.timestamp).toLocaleDateString()}</p>
+                        <div className="space-y-3 mb-6 relative z-10 p-4 bg-[#0b0e14] rounded-2xl border border-slate-800/50">
+                            <div className="flex items-start gap-3">
+                                <Building size={16} className="text-slate-500 mt-0.5"/>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Facility</p>
+                                    <p className="text-sm text-slate-300 line-clamp-1">{record.hospital_name}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <User size={16} className="text-slate-500 mt-0.5"/> 
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Issued By</p>
+                                    <p className="text-sm text-slate-300 line-clamp-1">
+                                        {record.doctor_name 
+                                            ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`) 
+                                            : `Dr. ${record.doctor_wallet?.substring(0, 6)}...`}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <Calendar size={16} className="text-slate-500 mt-0.5"/>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</p>
+                                    <p className="text-sm text-slate-300">{new Date(record.timestamp).toLocaleDateString()}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex gap-3 pt-4 border-t border-slate-800">
+                        <div className="flex gap-3 pt-4 border-t border-slate-800 relative z-10">
                             <button 
                                 onClick={() => setSelectedRecord(record)}
-                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2"
+                                className="flex-1 bg-[#0b0e14] hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-white py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 group-hover:shadow-md"
                             >
-                                <FileText size={16} /> Details
+                                <FileText size={16} className="text-slate-400" /> Details
                             </button>
                             <a 
                                 href={`https://ipfs.io/ipfs/${record.ipfs_hash}`} 
                                 target="_blank" 
                                 rel="noreferrer"
-                                className="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl text-sm font-bold transition flex items-center justify-center"
+                                className="px-4 bg-[#0b0e14] hover:bg-blue-600 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center shadow-lg hover:shadow-blue-900/20"
                             >
                                 <Download size={18} />
                             </a>
