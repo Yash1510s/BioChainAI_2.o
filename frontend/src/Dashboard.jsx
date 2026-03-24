@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import IssueRecordModal from './components/IssueRecordModal';
 
+const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
+
 
 function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setActiveTab }) {
     const [data, setData] = useState(null);
@@ -24,6 +26,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
     const [patientProfile, setPatientProfile] = useState(null); // <-- NEW STATE FOR FULL PROFILE
     const [appointments, setAppointments] = useState([]);
     const [approvalInputs, setApprovalInputs] = useState({}); // To store date/time for approval
+    const [liveVitals, setLiveVitals] = useState(null); // <-- NEW STATE FOR LIVE VITALS
 
     // Doctor ki asli appointments fetch karne ka logic
     useEffect(() => {
@@ -106,6 +109,46 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
         fetchData();
     }, [role]);
 
+    // --- NEW: WEB SOCKET FOR LIVE DASHBOARD CARDS ---
+    useEffect(() => {
+        // Only fetch vitals if we are a patient, or a doctor viewing themselves/a patient
+        if (role === 'HOSPITAL_ADMIN') return;
+
+        const patientId = selectedPatient?.wallet_address || selectedPatient?.email || userData?.wallet_address || userData?.email || 'demo-patient';
+        
+        let ws;
+        let reconnectTimer;
+
+        const connectWebSocket = () => {
+            const encodedId = encodeURIComponent(patientId);
+            const wsUrl = `${WS_BASE_URL}/ws/vitals/${encodedId}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    setLiveVitals({ hr: data.bpm, spo2: data.spo2, _status: data.status });
+                } catch (e) {
+                    console.error("Dashboard WebSocket error:", e);
+                }
+            };
+
+            ws.onclose = () => {
+                reconnectTimer = setTimeout(connectWebSocket, 3000); // Reconnect
+            };
+        };
+
+        connectWebSocket();
+
+        return () => {
+            clearTimeout(reconnectTimer);
+            if (ws) {
+                ws.onclose = null; // Prevent infinite reconnect loop on unmount
+                ws.close();
+            }
+        };
+    }, [selectedPatient, userData, role]);
+
     if (loading) return (
         <div className="flex items-center justify-center h-64 text-emerald-400 animate-pulse gap-2">
             <Activity className="animate-spin" /> Loading BioChain Node...
@@ -115,22 +158,29 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
     // --- COMPONENT: VITALS CARD (Reusable) ---
     const VitalsWidget = ({ title, values }) => (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className={`bg-[#121620] p-5 rounded-2xl border ${values._status === 'CRITICAL' && values.hr > 100 ? 'border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]' : 'border-slate-800'} shadow-lg relative overflow-hidden group transition-all duration-300`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-rose-500"><Heart size={60} /></div>
-                <div className="flex items-center gap-2 text-rose-500 mb-2">
-                    <Heart size={20} className="animate-pulse" />
-                    <span className="text-xs font-bold uppercase tracking-wider">{title} Heart Rate</span>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-rose-500">
+                        <Heart size={20} className={values._status === 'CRITICAL' && values.hr > 100 ? "animate-ping absolute opacity-75" : "animate-pulse"} />
+                        <Heart size={20} className="relative" />
+                        <span className="text-xs font-bold uppercase tracking-wider">{title} Heart Rate</span>
+                    </div>
+                    {values._status === 'CRITICAL' && values.hr > 100 && <span className="text-[9px] bg-rose-500/20 text-rose-400 px-2 rounded-full font-bold uppercase animate-pulse">HIGH</span>}
                 </div>
-                <h3 className="text-3xl font-bold text-white">{values.hr} <span className="text-sm text-slate-500 font-normal">bpm</span></h3>
+                <h3 className={`text-3xl font-bold ${values._status === 'CRITICAL' && values.hr > 100 ? 'text-rose-400' : 'text-white'}`}>{values.hr} <span className="text-sm text-slate-500 font-normal">bpm</span></h3>
             </div>
 
-            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className={`bg-[#121620] p-5 rounded-2xl border ${values._status === 'CRITICAL' && values.spo2 < 95 ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]' : 'border-slate-800'} shadow-lg relative overflow-hidden group transition-all duration-300`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-blue-500"><Activity size={60} /></div>
-                <div className="flex items-center gap-2 text-blue-500 mb-2">
-                    <Activity size={20} />
-                    <span className="text-xs font-bold uppercase tracking-wider">{title} SpO2</span>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-blue-500">
+                        <Activity size={20} />
+                        <span className="text-xs font-bold uppercase tracking-wider">{title} SpO2</span>
+                    </div>
+                    {values._status === 'CRITICAL' && values.spo2 < 95 && <span className="text-[9px] bg-amber-500/20 text-amber-400 px-2 rounded-full font-bold uppercase animate-pulse">LOW</span>}
                 </div>
-                <h3 className="text-3xl font-bold text-white">{values.spo2} <span className="text-sm text-slate-500 font-normal">%</span></h3>
+                <h3 className={`text-3xl font-bold ${values._status === 'CRITICAL' && values.spo2 < 95 ? 'text-amber-400' : 'text-white'}`}>{values.spo2} <span className="text-sm text-slate-500 font-normal">%</span></h3>
             </div>
 
             <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group">
@@ -351,10 +401,11 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                         {/* Logic to determine WHICH vitals to show */}
                          <VitalsWidget
                             title={selectedPatient ? "Patient" : "My"}
-                            values={selectedPatient || role === 'PATIENT' ?
+                            values={liveVitals ? { ...liveVitals, bp: "120/80", weight: 70 } : (
+                                selectedPatient || role === 'PATIENT' ?
                                 { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : 
                                 { hr: 65, spo2: 99, bp: "118/76", weight: 75 }  
-                            }
+                            )}
                         />
                     </div>
                 )}

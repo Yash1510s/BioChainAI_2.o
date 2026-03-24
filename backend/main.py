@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body, File, UploadFile
+from fastapi import FastAPI, HTTPException, Body, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -6,10 +6,13 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from pymongo import MongoClient
 from bson import ObjectId
+import certifi
 from passlib.context import CryptContext
 import random
 import requests
 import os
+import json
+import asyncio
 import datetime
 # IMPORT your existing blockchain functions
 # Note: Removed 'from app.models import PatientSignup' because we are defining the enterprise models below
@@ -32,7 +35,7 @@ app.add_middleware(
 # ==========================================
 MONGO_URI = "mongodb+srv://yash82040_db_user:YgU2spnJUDxYnrpZ@cluster0.j6ox3sl.mongodb.net/biochain_db?retryWrites=true&w=majority&appName=Cluster0"
 
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["biochain_db"]
 patients_collection = db.patients
 doctors_collection = db.doctors
@@ -893,4 +896,106 @@ def get_audit_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==========================================
+# 17. AI CLINICAL DECISION SUPPORT (DRUG CHECKER)
+# ==========================================
 
+class DrugCheckRequest(BaseModel):
+    drugs: list[str]
+
+@app.post("/api/ai/check-drugs")
+async def check_drug_interactions(request: DrugCheckRequest):
+    try:
+        # Agar sirf 1 dawai hai, toh aapas mein reaction ka chance nahi
+        if len(request.drugs) < 2:
+            return {
+                "status": "Success",
+                "risk_level": "Safe",
+                "warning_message": "Single medication. No major drug-drug interactions detected."
+            }
+
+        # Gemini Prompt - Strict medical formatting
+        prompt = f"""
+        You are an expert clinical AI system. Analyze the following list of medications for potential drug-drug interactions:
+        {', '.join(request.drugs)}
+
+        Respond ONLY in a valid JSON format with the following keys:
+        - "risk_level": Must be exactly one of "Safe", "Moderate", or "Severe".
+        - "warning_message": A concise 1-2 sentence clinical explanation of the interaction (or confirmation of safety).
+
+        Do not use markdown formatting like ```json. Just return the raw JSON string.
+        """
+
+        # Using the existing gemini_client
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt
+        )
+        ai_text = response.text.strip()
+        
+        # Clean up in case Gemini adds markdown formatting accidentally
+        if ai_text.startswith("```json"):
+            ai_text = ai_text[7:-3]
+        elif ai_text.startswith("```"):
+            ai_text = ai_text[3:-3]
+            
+        result = json.loads(ai_text.strip())
+        
+        return {
+            "status": "Success",
+            "risk_level": result.get("risk_level", "Unknown"),
+            "warning_message": result.get("warning_message", "Analysis complete.")
+        }
+        
+    except Exception as e:
+        print(f"AI Drug Check Error: {e}")
+        return {
+            "status": "Error",
+            "risk_level": "Unknown",
+            "warning_message": "Could not verify drug interactions at this moment. Please check manually."
+        }
+
+# ==========================================
+# 18. PHASE 4: THE GUARDIAN (IoT WEBSOCKETS)
+# ==========================================
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/vitals/{patient_id}")
+async def iot_vitals_stream(websocket: WebSocket, patient_id: str):
+    await manager.connect(websocket)
+    print(f"📡 IoT Sensor Connected for Patient: {patient_id}")
+    try:
+        while True:
+            # Simulate realistic IoT sensor data
+            bpm = random.randint(65, 105)
+            spo2 = random.randint(94, 100)
+
+            # Auto-flagging logic on the edge (Backend)
+            status = "CRITICAL" if bpm > 100 or spo2 < 95 else "NORMAL"
+
+            vitals_data = {
+                "patient_id": patient_id,
+                "bpm": bpm,
+                "spo2": spo2,
+                "status": status,
+                "timestamp": datetime.datetime.utcnow().strftime("%H:%M:%S")
+            }
+
+            await websocket.send_json(vitals_data)
+            await asyncio.sleep(2)
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        print(f"❌ IoT Sensor Disconnected for Patient: {patient_id}")

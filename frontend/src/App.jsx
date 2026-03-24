@@ -19,6 +19,7 @@ import DoctorAppointments from './components/DoctorAppointments';
 import UploadData from './components/UploadData';
 import PatientAppointments from './components/PatientAppointments';
 import CareTeam from './components/CareTeam';
+import LiveVitals from './components/LiveVitals';
 import AIAssistantWidget from './components/AIAssistantWidget';
 import './index.css';
 
@@ -383,6 +384,7 @@ function App() {
     { name: 'Settings', icon: Settings },
   ] : role?.includes('DOCTOR') ? [
     { name: 'Home', icon: Home },
+    { name: 'Live Vitals', icon: Activity },
     { name: 'Patients', icon: Users },
     { name: 'Appointments', icon: Clock },
     { name: 'My Record', icon: FileText },
@@ -392,6 +394,7 @@ function App() {
     { name: 'Settings', icon: Settings },
   ] : [
     { name: 'Home', icon: Home },
+    { name: 'Live Vitals', icon: Activity },
     { name: 'My Record', icon: FileText },
     { name: 'Upload Data', icon: UploadCloud },
     { name: 'Appointments', icon: Clock },
@@ -501,6 +504,11 @@ function App() {
           )}
 
           {activeTab === 'Upload Data' && <UploadData userData={userData} />}
+
+          {/* LIVE VITALS TAB — Full IoT Monitor with Canvas Charts & Threshold Alerts */}
+          {activeTab === 'Live Vitals' && (role === 'PATIENT' || role?.includes('DOCTOR')) && (
+            <LiveVitals userData={userData} />
+          )}
 
           {/* Appointments Tab Rendering Logic */}
           {activeTab === 'Appointments' && role === 'PATIENT' && <PatientAppointments userData={userData} />}
