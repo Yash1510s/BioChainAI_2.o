@@ -96,10 +96,11 @@ const UploadData = ({ userData }) => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="bg-[#121620] rounded-3xl p-8 border border-slate-800 shadow-xl">
-                
-                <div className="mb-8 border-b border-slate-800 pb-6">
+        <div className="max-w-4xl mx-auto animate-fade-in-up">
+            <div className="bg-[#121620] rounded-3xl p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+
+                <div className="mb-8 border-b border-slate-800 pb-6 relative z-10">
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         <UploadCloud className="text-blue-500" size={28} /> Upload Medical Data
                     </h2>

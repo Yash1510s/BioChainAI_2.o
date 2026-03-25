@@ -24,16 +24,16 @@ const MyProfile = ({ userRole, userId, userData, onProfileUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const [formData, setFormData] = useState({
-    name: userData?.name || "",
-    email: userData?.email || "",
-    phone: userData?.phone || "",
-    address: userData?.address || "",
-    bloodGroup: userData?.bloodGroup || "",
-    allergies: userData?.allergies || "",
-    emergencyContact: userData?.emergencyContact || "",
-    specialization: userData?.specialization || "",
-  });
+    const [formData, setFormData] = useState({
+        name: userData?.name || "",
+        email: userData?.email || "",
+        phone: userData?.phone || "",
+        emergencyContact: userData?.emergencyContact || "",
+        address: userData?.address || "",
+        bloodGroup: userData?.bloodGroup || "",
+        allergies: userData?.allergies || "",
+        specialization: userData?.specialization || "",
+    });
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [certificate, setCertificate] = useState(null);
@@ -147,6 +147,7 @@ const MyProfile = ({ userRole, userId, userData, onProfileUpdate }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <DisplayField label="Email Address" value={userData?.email} />
             <DisplayField label="Phone Number" value={userData?.phone} />
+            <DisplayField label="Emergency Contact" value={userData?.emergencyContact} />
             
             {userRole === 'PATIENT' && (
               <>
@@ -183,6 +184,7 @@ const MyProfile = ({ userRole, userId, userData, onProfileUpdate }) => {
                  <InputField label="Full Name" name="name" value={formData.name} placeholder="John Doe" onChange={handleInputChange} />
                  <InputField label="Email Address" name="email" value={formData.email} placeholder="doctor@biochain.ai" onChange={handleInputChange} />
                  <InputField label="Phone Number" name="phone" value={formData.phone} placeholder="+1 234 567 890" onChange={handleInputChange} />
+                 {userRole === "PATIENT" && <InputField label="Emergency Contact" name="emergencyContact" value={formData.emergencyContact} placeholder="Family / Guardian Number" onChange={handleInputChange} />}
                  {userRole === "PATIENT" && <InputField label="Blood Group" name="bloodGroup" value={formData.bloodGroup} placeholder="O+, A-, etc." onChange={handleInputChange} />}
                  {userRole === "PATIENT" && <InputField label="Allergies" name="allergies" value={formData.allergies} placeholder="Peanuts, Penicillin..." onChange={handleInputChange} />}
                  {userRole?.includes("DOCTOR") && <InputField label="Specialization" name="specialization" value={formData.specialization} placeholder="Cardiologist, Neurologist..." onChange={handleInputChange} />}

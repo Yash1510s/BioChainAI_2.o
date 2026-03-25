@@ -2,8 +2,9 @@ from pymongo import MongoClient
 from passlib.context import CryptContext
 
 # Connect to Local MongoDB
-client = MongoClient("mongodb://localhost:27017")
-db = client.biochain_db 
+MONGO_URI = "mongodb+srv://yash82040_db_user:YgU2spnJUDxYnrpZ@cluster0.j6ox3sl.mongodb.net/biochain_db?retryWrites=true&w=majority&appName=Cluster0"
+client = MongoClient(MONGO_URI)
+db = client["biochain_db"]
 
 # Password Hashing Logic
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")

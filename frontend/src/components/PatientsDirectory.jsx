@@ -1,12 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
-import { Search, Users, Activity, FileText, Shield, ArrowRight, Phone } from 'lucide-react';
+import { Search, Users, Activity, FileText, Shield, ArrowRight, Phone, Lock } from 'lucide-react';
+
 
 const PatientsDirectory = ({ doctorData, onSelectPatient }) => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [accessDenied, setAccessDenied] = useState(null); // Stores patient name if access denied
+
+    // Check permission then navigate to patient chart
+    const checkAndOpenPatient = async (patient) => {
+        const doctorWallet = doctorData?.wallet_address;
+        if (!doctorWallet) {
+            onSelectPatient && onSelectPatient(patient);
+            return;
+        }
+        try {
+            const res = await axios.get(`${API_BASE_URL}/care-team/check-access/${patient.email}/${doctorWallet}`);
+            if (res.data.access_granted === false) {
+                setAccessDenied(patient.name);
+                setTimeout(() => setAccessDenied(null), 4000);
+            } else {
+                onSelectPatient && onSelectPatient(patient);
+            }
+        } catch (err) {
+            // If check fails or doctor not in care team, allow access (not in care team = no restriction)
+            onSelectPatient && onSelectPatient(patient);
+        }
+    };
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -37,6 +60,13 @@ const PatientsDirectory = ({ doctorData, onSelectPatient }) => {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
+            {/* Access Denied Alert */}
+            {accessDenied && (
+                <div className="bg-rose-900/70 border border-rose-500/50 rounded-2xl p-4 flex items-center gap-3 text-rose-300 font-bold text-sm animate-pulse">
+                    <Lock size={18} className="shrink-0" />
+                    Access Denied — {accessDenied} has revoked your access to their medical records.
+                </div>
+            )}
             {/* Header & Search Bar */}
             <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
@@ -109,7 +139,7 @@ const PatientsDirectory = ({ doctorData, onSelectPatient }) => {
                                         </td>
                                         <td className="py-4 px-6 text-right">
                                             <button 
-                                                onClick={() => onSelectPatient && onSelectPatient(patient)}
+                                                onClick={() => checkAndOpenPatient(patient)}
                                                 className="bg-slate-800 hover:bg-blue-600 text-white p-2.5 rounded-xl transition flex items-center justify-center w-full max-w-[120px] ml-auto gap-2 text-xs font-bold shadow-lg"
                                             >
                                                 Open Chart <ArrowRight size={14} />

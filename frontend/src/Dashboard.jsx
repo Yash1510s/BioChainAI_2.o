@@ -7,12 +7,14 @@ import {
     Shield, Thermometer, Droplet, Weight, Users,
     ClipboardPlus, Stethoscope, AlertOctagon, Search,
     Zap, ArrowLeft, X, ChevronRight, Filter, AlertCircle,
-    CheckCircle2, CheckCircle, Plus, Calendar, Briefcase, MapPin, Building, Server
+    CheckCircle2, CheckCircle, Plus, Calendar, Briefcase, MapPin, Building, Server, BadgeCheck
 } from 'lucide-react';
 import IssueRecordModal from './components/IssueRecordModal';
 
+const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 
-function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
+
+function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setActiveTab }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -21,8 +23,10 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
     const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
     const [selectedHistoryRecord, setSelectedHistoryRecord] = useState(null);
     const [patientRecords, setPatientRecords] = useState([]); // <-- NEW STATE FOR REAL RECORDS
+    const [patientProfile, setPatientProfile] = useState(null); // <-- NEW STATE FOR FULL PROFILE
     const [appointments, setAppointments] = useState([]);
     const [approvalInputs, setApprovalInputs] = useState({}); // To store date/time for approval
+    const [liveVitals, setLiveVitals] = useState(null); // <-- NEW STATE FOR LIVE VITALS
 
     // Doctor ki asli appointments fetch karne ka logic
     useEffect(() => {
@@ -60,7 +64,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
         }
     };
 
-    // --- NEW: Function to manually fetch patient records ---
+    // --- NEW: Function to manually fetch patient records & profile ---
     const fetchPatientRecords = async () => {
         if (!selectedPatient) return;
         try {
@@ -69,8 +73,16 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
             if (res.data.status === "Success") {
                 setPatientRecords(res.data.records);
             }
+
+            // Fetch full profile for doctor if they only got '{name, email}' via appointments tab
+            if (role?.includes('DOCTOR')) {
+                const profileRes = await axios.get(`${API_BASE_URL}/api/patient/${pid}`);
+                if (profileRes.data.status === "Success") {
+                    setPatientProfile(profileRes.data.patient);
+                }
+            }
         } catch (err) {
-            console.error("Error fetching patient records:", err);
+            console.error("Error fetching patient details:", err);
         }
     };
 
@@ -84,16 +96,58 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/dashboard`);
+                // Admin dashboard requires specific health telemetry stats
+                const endpoint = role === 'HOSPITAL_ADMIN' ? `${API_BASE_URL}/api/admin/node-stats` : `${API_BASE_URL}/dashboard`;
+                const res = await axios.get(endpoint);
                 setData(res.data);
             } catch (err) {
-                console.error(err);
+                console.error("Dashboard data fetch failed:", err);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, []);
+    }, [role]);
+
+    // --- NEW: WEB SOCKET FOR LIVE DASHBOARD CARDS ---
+    useEffect(() => {
+        // Only fetch vitals if we are a patient, or a doctor viewing themselves/a patient
+        if (role === 'HOSPITAL_ADMIN') return;
+
+        const patientId = selectedPatient?.wallet_address || selectedPatient?.email || userData?.wallet_address || userData?.email || 'demo-patient';
+        
+        let ws;
+        let reconnectTimer;
+
+        const connectWebSocket = () => {
+            const encodedId = encodeURIComponent(patientId);
+            const wsUrl = `${WS_BASE_URL}/ws/vitals/${encodedId}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    setLiveVitals({ hr: data.bpm, spo2: data.spo2, _status: data.status });
+                } catch (e) {
+                    console.error("Dashboard WebSocket error:", e);
+                }
+            };
+
+            ws.onclose = () => {
+                reconnectTimer = setTimeout(connectWebSocket, 3000); // Reconnect
+            };
+        };
+
+        connectWebSocket();
+
+        return () => {
+            clearTimeout(reconnectTimer);
+            if (ws) {
+                ws.onclose = null; // Prevent infinite reconnect loop on unmount
+                ws.close();
+            }
+        };
+    }, [selectedPatient, userData, role]);
 
     if (loading) return (
         <div className="flex items-center justify-center h-64 text-emerald-400 animate-pulse gap-2">
@@ -104,22 +158,29 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
     // --- COMPONENT: VITALS CARD (Reusable) ---
     const VitalsWidget = ({ title, values }) => (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className={`bg-[#121620] p-5 rounded-2xl border ${values._status === 'CRITICAL' && values.hr > 100 ? 'border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]' : 'border-slate-800'} shadow-lg relative overflow-hidden group transition-all duration-300`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-rose-500"><Heart size={60} /></div>
-                <div className="flex items-center gap-2 text-rose-500 mb-2">
-                    <Heart size={20} className="animate-pulse" />
-                    <span className="text-xs font-bold uppercase tracking-wider">{title} Heart Rate</span>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-rose-500">
+                        <Heart size={20} className={values._status === 'CRITICAL' && values.hr > 100 ? "animate-ping absolute opacity-75" : "animate-pulse"} />
+                        <Heart size={20} className="relative" />
+                        <span className="text-xs font-bold uppercase tracking-wider">{title} Heart Rate</span>
+                    </div>
+                    {values._status === 'CRITICAL' && values.hr > 100 && <span className="text-[9px] bg-rose-500/20 text-rose-400 px-2 rounded-full font-bold uppercase animate-pulse">HIGH</span>}
                 </div>
-                <h3 className="text-3xl font-bold text-white">{values.hr} <span className="text-sm text-slate-500 font-normal">bpm</span></h3>
+                <h3 className={`text-3xl font-bold ${values._status === 'CRITICAL' && values.hr > 100 ? 'text-rose-400' : 'text-white'}`}>{values.hr} <span className="text-sm text-slate-500 font-normal">bpm</span></h3>
             </div>
 
-            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group">
+            <div className={`bg-[#121620] p-5 rounded-2xl border ${values._status === 'CRITICAL' && values.spo2 < 95 ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]' : 'border-slate-800'} shadow-lg relative overflow-hidden group transition-all duration-300`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition text-blue-500"><Activity size={60} /></div>
-                <div className="flex items-center gap-2 text-blue-500 mb-2">
-                    <Activity size={20} />
-                    <span className="text-xs font-bold uppercase tracking-wider">{title} SpO2</span>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-blue-500">
+                        <Activity size={20} />
+                        <span className="text-xs font-bold uppercase tracking-wider">{title} SpO2</span>
+                    </div>
+                    {values._status === 'CRITICAL' && values.spo2 < 95 && <span className="text-[9px] bg-amber-500/20 text-amber-400 px-2 rounded-full font-bold uppercase animate-pulse">LOW</span>}
                 </div>
-                <h3 className="text-3xl font-bold text-white">{values.spo2} <span className="text-sm text-slate-500 font-normal">%</span></h3>
+                <h3 className={`text-3xl font-bold ${values._status === 'CRITICAL' && values.spo2 < 95 ? 'text-amber-400' : 'text-white'}`}>{values.spo2} <span className="text-sm text-slate-500 font-normal">%</span></h3>
             </div>
 
             <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group">
@@ -161,18 +222,35 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
 
                         <div>
                             {/* DYNAMIC TITLE BASED ON ROLE */}
-                            <h1 className="text-3xl font-bold tracking-tight">
-                                {selectedPatient ? `Patient: ${selectedPatient.name}` : 
-                                 role === 'DOCTOR' ? `Dr. ${userData?.name || 'Doctor'}` : 
-                                 role === 'HOSPITAL_ADMIN' ? `${userData?.hospital_name || 'Hospital Network'}` : 
-                                 userData?.name || "Patient Profile"}
-                            </h1>
-                            <p className="text-slate-400 text-sm">
-                                {selectedPatient ? 'Viewing Live Clinical Data' : 
-                                 role === 'DOCTOR' ? 'Clinical Workspace • BioChain Network' : 
-                                 role === 'HOSPITAL_ADMIN' ? 'Enterprise Node Control Center' : 
-                                 'Manage your decentralized health ecosystem.'}
-                            </p>
+                            {role?.includes('DOCTOR') && !selectedPatient ? (
+                                <>
+                                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                                        Welcome back, {userData?.name?.replace(/^Dr\.\s*/i, '') || 'Doctor'} 
+                                        {userData?.is_verified && (
+                                            <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
+                                                <BadgeCheck className="text-blue-400" size={16} />
+                                                <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Verified Identity</span>
+                                            </div>
+                                        )}
+                                    </h1>
+                                    <p className="text-slate-400 text-sm mt-2">
+                                        Your medical node is fully synced and secured on-chain.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="text-3xl font-bold tracking-tight">
+                                        {selectedPatient ? `Patient: ${selectedPatient.name}` : 
+                                         role === 'HOSPITAL_ADMIN' ? `${userData?.hospital_name || 'Hospital Network'}` : 
+                                         userData?.name || "Patient Profile"}
+                                    </h1>
+                                    <p className="text-slate-400 text-sm">
+                                        {selectedPatient ? 'Viewing Live Clinical Data' : 
+                                         role === 'HOSPITAL_ADMIN' ? 'Enterprise Node Control Center' : 
+                                         'Manage your decentralized health ecosystem.'}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </div>
  
@@ -193,64 +271,118 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
                     1. ADMIN DASHBOARD (Only visible to HOSPITAL_ADMIN)
                    ========================================================= */}
                 {role === 'HOSPITAL_ADMIN' && (
-                    <div className="space-y-8 print:hidden">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
-                                <div className="flex justify-between mb-4">
-                                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400"><Stethoscope size={20} /></div>
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Clinical Staff</span>
+                    <div className="space-y-8 print:hidden animate-fade-in-up">
+                        {/* --- ADMIN STAT CARDS (4-Grid) --- */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 stagger-children">
+                            <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group card-hover hover:border-purple-500/30">
+                                <div className="absolute -top-4 -right-4 w-24 h-24 bg-purple-500/5 rounded-full group-hover:bg-purple-500/10 transition-all duration-500"></div>
+                                <div className="flex justify-between mb-4 relative z-10">
+                                    <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300"><Stethoscope size={22} /></div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Clinical Staff</span>
                                 </div>
-                                <h3 className="text-3xl font-bold">24</h3>
-                                <p className="text-xs text-emerald-400 mt-2">+2 this month</p>
+                                <h3 className="text-4xl font-bold text-white relative z-10">{data?.stats?.total_doctors || '—'}</h3>
+                                <p className="text-xs text-purple-400 mt-2 font-medium">Registered doctors</p>
                             </div>
-                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
-                                <div className="flex justify-between mb-4">
-                                    <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400"><Users size={20} /></div>
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Patients</span>
+                            <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group card-hover hover:border-blue-500/30">
+                                <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-500/5 rounded-full group-hover:bg-blue-500/10 transition-all duration-500"></div>
+                                <div className="flex justify-between mb-4 relative z-10">
+                                    <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300"><Users size={22} /></div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Patients</span>
                                 </div>
-                                <h3 className="text-3xl font-bold">1,402</h3>
-                                <p className="text-xs text-slate-500 mt-2">Mapped to your node</p>
+                                <h3 className="text-4xl font-bold text-white relative z-10">{data?.stats?.total_patients || '—'}</h3>
+                                <p className="text-xs text-blue-400 mt-2 font-medium">Mapped to your node</p>
                             </div>
-                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
-                                <div className="flex justify-between mb-4">
-                                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400"><Server size={20} /></div>
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Node Status</span>
+                            <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group card-hover hover:border-emerald-500/30">
+                                <div className="absolute -top-4 -right-4 w-24 h-24 bg-emerald-500/5 rounded-full group-hover:bg-emerald-500/10 transition-all duration-500"></div>
+                                <div className="flex justify-between mb-4 relative z-10">
+                                    <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400"><Server size={22} /></div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Node Status</span>
                                 </div>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                                <div className="flex items-center gap-2 mt-2 relative z-10">
+                                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
                                     <h3 className="text-xl font-bold text-emerald-400">Synced to Mainnet</h3>
                                 </div>
+                                <p className="text-xs text-slate-500 mt-2 font-medium">All systems operational</p>
                             </div>
-                            <div className="bg-[#121620] p-5 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
-                                <div className="flex justify-between mb-4">
-                                    <div className="p-2 bg-amber-500/10 rounded-lg text-amber-400"><Shield size={20} /></div>
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Smart Contracts</span>
+                            <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden group card-hover hover:border-amber-500/30">
+                                <div className="absolute -top-4 -right-4 w-24 h-24 bg-amber-500/5 rounded-full group-hover:bg-amber-500/10 transition-all duration-500"></div>
+                                <div className="flex justify-between mb-4 relative z-10">
+                                    <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300"><Shield size={22} /></div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Smart Contracts</span>
                                 </div>
-                                <h3 className="text-3xl font-bold text-white">8,432</h3>
-                                <p className="text-xs text-slate-500 mt-2">Transactions executed</p>
+                                <h3 className="text-4xl font-bold text-white relative z-10">{(data?.stats?.transactions || 0).toLocaleString()}</h3>
+                                <p className="text-xs text-amber-400 mt-2 font-medium">Records on chain</p>
                             </div>
                         </div>
 
+                        {/* --- QUICK ACTIONS + RECENT ACTIVITY (2-Col) --- */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Quick Actions */}
                             <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                <h3 className="text-lg font-bold mb-5 flex items-center gap-2 text-white">
                                     <Stethoscope size={18} className="text-purple-400" /> Quick Actions
                                 </h3>
                                 <div className="space-y-3">
-                                    <button className="w-full bg-slate-800 hover:bg-purple-900/40 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition group border border-slate-700 hover:border-purple-500/50">
+                                    <button 
+                                        onClick={() => setActiveTab('Staff Directory')}
+                                        className="w-full bg-[#0b0e14] hover:bg-purple-900/20 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition-all duration-200 group border border-slate-800 hover:border-purple-500/30"
+                                    >
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition"><User size={18} /></div>
+                                            <div className="bg-purple-500/15 p-2.5 rounded-lg text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-all duration-200"><User size={18} /></div>
                                             Register New Doctor
                                         </div>
-                                        <ArrowLeft size={16} className="rotate-180 opacity-50 group-hover:opacity-100" />
+                                        <ChevronRight size={16} className="text-slate-600 group-hover:text-purple-400 group-hover:translate-x-1 transition-all duration-200" />
                                     </button>
-                                    <button className="w-full bg-slate-800 hover:bg-blue-900/40 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition group border border-slate-700 hover:border-blue-500/50">
+                                    <button 
+                                        onClick={() => setActiveTab('Audit Logs')}
+                                        className="w-full bg-[#0b0e14] hover:bg-blue-900/20 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition-all duration-200 group border border-slate-800 hover:border-blue-500/30"
+                                    >
                                         <div className="flex items-center gap-3">
-                                            <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition"><FileText size={18} /></div>
+                                            <div className="bg-blue-500/15 p-2.5 rounded-lg text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all duration-200"><FileText size={18} /></div>
                                             View Audit Logs
                                         </div>
-                                        <ArrowLeft size={16} className="rotate-180 opacity-50 group-hover:opacity-100" />
+                                        <ChevronRight size={16} className="text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-200" />
                                     </button>
+                                    <button 
+                                        onClick={() => setActiveTab('Node Overview')}
+                                        className="w-full bg-[#0b0e14] hover:bg-emerald-900/20 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition-all duration-200 group border border-slate-800 hover:border-emerald-500/30"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-emerald-500/15 p-2.5 rounded-lg text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-200"><Shield size={18} /></div>
+                                            Manage Smart Contracts
+                                        </div>
+                                        <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all duration-200" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Recent Network Activity */}
+                            <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl">
+                                <h3 className="text-lg font-bold mb-5 flex items-center gap-2 text-white">
+                                    <Activity size={18} className="text-emerald-400" /> Network Activity
+                                </h3>
+                                <div className="relative pl-6 border-l-2 border-slate-800 space-y-6">
+                                    {data?.activities?.map((act, idx) => (
+                                        <div key={idx} className="relative">
+                                            <div className={`absolute -left-[25px] top-1 w-3 h-3 rounded-full border-2 border-[#121620] shadow-lg ${
+                                                act.type === 'system' ? 'bg-emerald-500 shadow-emerald-500/20' :
+                                                act.type === 'record' ? 'bg-blue-500 shadow-blue-500/20' :
+                                                act.type === 'contract' ? 'bg-amber-500 shadow-amber-500/20' :
+                                                'bg-purple-500 shadow-purple-500/20'
+                                            }`}></div>
+                                            <h4 className="text-sm font-bold text-white">{act.action}</h4>
+                                            <p className="text-xs text-slate-500 mt-1">Network: BioChain Protocol</p>
+                                            <p className="text-[10px] text-slate-600 font-mono mt-1">{act.time}</p>
+                                        </div>
+                                    ))}
+                                    {!data?.activities && (
+                                        <div className="relative">
+                                            <div className="absolute -left-[25px] top-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#121620]"></div>
+                                            <h4 className="text-sm font-bold text-white">Node Sync Completed</h4>
+                                            <p className="text-xs text-slate-500 mt-1">All blockchain data synchronized</p>
+                                            <p className="text-[10px] text-slate-600 font-mono mt-1">Just now</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -269,10 +401,11 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
                         {/* Logic to determine WHICH vitals to show */}
                          <VitalsWidget
                             title={selectedPatient ? "Patient" : "My"}
-                            values={selectedPatient || role === 'PATIENT' ?
+                            values={liveVitals ? { ...liveVitals, bp: "120/80", weight: 70 } : (
+                                selectedPatient || role === 'PATIENT' ?
                                 { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : 
                                 { hr: 65, spo2: 99, bp: "118/76", weight: 75 }  
-                            }
+                            )}
                         />
                     </div>
                 )}
@@ -413,28 +546,38 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
                             <div className="flex justify-between items-start mb-8">
                                 <div>
                                     <h2 className="text-3xl font-bold text-white mb-1">{userData?.name || "Patient"}</h2>
-                                    <div className="flex items-center gap-2 text-slate-500 text-xs font-mono bg-black/20 px-2 py-1 rounded w-fit">
+                                    <div className="flex items-center gap-2 text-slate-500 text-xs font-mono bg-black/20 px-2 py-1 rounded w-fit border border-slate-800/50">
                                         <Shield size={12} className="text-emerald-500" />
-                                        {data.email_hash?.substring(0, 40) || '0x...'}...
+                                        {userData?.idHash ? (
+                                            <span className="text-[10px] tracking-tight">
+                                                {userData.idHash.substring(0, 10)}...{userData.idHash.substring(userData.idHash.length - 8)}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] opacity-50 underline decoration-dotted">PENDING_SYNC</span>
+                                        )}
                                     </div>
                                 </div>
                                 <span className="bg-emerald-500/10 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                                    ACTIVE PATIENT
+                                    MY HEALTH PROFILE
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
-                                    <div className="text-rose-400 text-xs font-bold uppercase mb-2 flex items-center gap-2"><Heart size={14} /> Blood Type</div>
-                                    <p className="text-2xl font-bold">{data.blood_type || "N/A"}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
+                                    <div className="text-rose-400 text-[10px] font-bold uppercase mb-1 flex items-center gap-2 tracking-wider"><Heart size={12} /> Blood</div>
+                                    <p className="text-xl font-black text-white">{userData?.bloodGroup || "N/A"}</p>
                                 </div>
-                                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
-                                    <div className="text-amber-400 text-xs font-bold uppercase mb-2 flex items-center gap-2"><FileText size={14} /> Allergies</div>
-                                    <p className="text-lg">{data.allergies || "None"}</p>
+                                <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
+                                    <div className="text-amber-400 text-[10px] font-bold uppercase mb-1 flex items-center gap-2 tracking-wider"><FileText size={12} /> Allergies</div>
+                                    <p className="text-sm font-bold text-white truncate">{userData?.allergies || "None"}</p>
                                 </div>
-                                <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
-                                    <div className="text-blue-400 text-xs font-bold uppercase mb-2 flex items-center gap-2"><Phone size={14} /> Emergency</div>
-                                    <p className="text-lg">{data.emergency_contact || "N/A"}</p>
+                                <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
+                                    <div className="text-emerald-400 text-[10px] font-bold uppercase mb-1 flex items-center gap-2 tracking-wider"><Phone size={12} /> Mobile</div>
+                                    <p className="text-sm font-bold text-white tracking-tighter">{userData?.phone || "N/A"}</p>
+                                </div>
+                                <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
+                                    <div className="text-blue-400 text-[10px] font-bold uppercase mb-1 flex items-center gap-2 tracking-wider"><Phone size={12} /> Emergency</div>
+                                    <p className="text-sm font-bold text-white tracking-tighter break-all">{userData?.emergencyContact || "N/A"}</p>
                                 </div>
                             </div>
                         </motion.div>
@@ -468,11 +611,11 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient }) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-[#0b0e14] p-3 rounded-xl border border-slate-800">
                                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Heart size={12}/> Blood Type</p>
-                                    <p className="font-bold text-white">O+ (Positive)</p>
+                                    <p className="font-bold text-white">{patientProfile?.bloodGroup || selectedPatient?.bloodGroup || "N/A"}</p>
                                 </div>
                                 <div className="bg-[#0b0e14] p-3 rounded-xl border border-slate-800">
                                     <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><AlertOctagon size={12}/> Allergies</p>
-                                    <p className="font-bold text-white">Penicillin</p>
+                                    <p className="font-bold text-white">{patientProfile?.allergies || selectedPatient?.allergies || "None"}</p>
                                 </div>
                             </div>
                         </div>
