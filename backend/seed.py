@@ -1,8 +1,13 @@
 from pymongo import MongoClient
 from passlib.context import CryptContext
+from dotenv import load_dotenv
+import os
 
-# Connect to Local MongoDB
-MONGO_URI = "mongodb+srv://yash82040_db_user:YgU2spnJUDxYnrpZ@cluster0.j6ox3sl.mongodb.net/biochain_db?retryWrites=true&w=majority&appName=Cluster0"
+# Load environment variables from .env
+load_dotenv()
+
+# Connect to MongoDB Atlas
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/biochain_db")
 client = MongoClient(MONGO_URI)
 db = client["biochain_db"]
 

@@ -4,7 +4,7 @@ import { API_BASE_URL } from './config';
 import {
   Eye, EyeOff, Mail, Wallet, ArrowRight, ArrowLeft, Activity,
   Home, Users, FileText, User, Settings, LogOut, Heart, Clock, Shield,
-  Building, UploadCloud, BadgeCheck // <-- NEW IMPORT FOR ADMIN AND PATIENT UPLOAD
+  Building, UploadCloud, BadgeCheck, Pill // <-- Added Pill icon for Drug Check
 } from 'lucide-react';
 import Register from './Register';
 import Dashboard from './Dashboard';
@@ -20,6 +20,7 @@ import UploadData from './components/UploadData';
 import PatientAppointments from './components/PatientAppointments';
 import CareTeam from './components/CareTeam';
 import LiveVitals from './components/LiveVitals';
+import DrugInteractionChecker from './components/DrugInteractionChecker';
 import AIAssistantWidget from './components/AIAssistantWidget';
 import './index.css';
 
@@ -387,6 +388,7 @@ function App() {
     { name: 'Live Vitals', icon: Activity },
     { name: 'Patients', icon: Users },
     { name: 'Appointments', icon: Clock },
+    { name: 'Drug Check', icon: Pill },
     { name: 'My Record', icon: FileText },
     { name: 'Upload Data', icon: UploadCloud },
     { name: 'Care Team', icon: Heart },
@@ -397,6 +399,7 @@ function App() {
     { name: 'Live Vitals', icon: Activity },
     { name: 'My Record', icon: FileText },
     { name: 'Upload Data', icon: UploadCloud },
+    { name: 'Drug Check', icon: Pill },
     { name: 'Appointments', icon: Clock },
     { name: 'Care Team', icon: Heart },
     { name: 'My Profile', icon: User },
@@ -522,6 +525,7 @@ function App() {
           {activeTab === 'Care Team' && role === 'HOSPITAL_ADMIN' && (
             <EncryptedSection title={activeTab} />
           )}
+          {activeTab === 'Drug Check' && (role === 'PATIENT' || role?.includes('DOCTOR')) && <DrugInteractionChecker />}
           {activeTab === 'Settings' && <EncryptedSection title={activeTab} />}
 
           {activeTab === 'My Profile' && (

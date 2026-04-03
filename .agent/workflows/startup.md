@@ -39,5 +39,5 @@ description: how to start the complete BioChainAI ecosystem
    ```
 
 5. **Access Application**
-   - Frontend: `http://localhost:5173`
+   - Frontend: `http://localhost:3000`
    - Backend Docs: `http://localhost:8000/docs`

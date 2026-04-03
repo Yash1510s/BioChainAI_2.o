@@ -80,7 +80,10 @@ Thumbs.db
 desktop.ini
 
 # ------------------------------------------
-# LOGS
+# LOGS & TEMP FILES
 # ------------------------------------------
 *.log
 logs/
+git_log*.txt
+git_reflog.txt
+
