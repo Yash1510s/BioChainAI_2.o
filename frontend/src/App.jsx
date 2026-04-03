@@ -417,19 +417,19 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-[#0b0e14] text-slate-300 font-sans print:bg-white">
-      <aside className="w-64 bg-[#121620] border-r border-slate-800 p-6 flex flex-col fixed h-full z-20 print:hidden">
-        <div className="flex items-center gap-3 mb-10 text-white">
+      <aside className="w-64 bg-[#121620] border-r border-slate-800 p-6 flex flex-col fixed h-full z-20 overflow-y-auto overflow-x-hidden print:hidden">
+        <div className="flex items-center gap-3 mb-10 text-white flex-shrink-0">
           <Activity className={role === 'HOSPITAL_ADMIN' ? 'text-purple-500' : role?.includes('DOCTOR') ? 'text-blue-500' : 'text-emerald-500'} size={28} />
           <span className="text-xl font-bold tracking-tight">BioChainAI</span>
           {role === 'HOSPITAL_ADMIN' && <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-500/20">Admin</span>}
         </div>
 
-        <div className={`p-4 rounded-xl mb-8 flex items-center gap-3 border transition-all duration-300 ${
+        <div className={`p-4 rounded-xl mb-8 flex items-center gap-3 border transition-all duration-300 flex-shrink-0 ${
           role === 'HOSPITAL_ADMIN' ? 'bg-purple-500/5 border-purple-500/20' :
           role?.includes('DOCTOR') ? 'bg-blue-500/5 border-blue-500/20' :
           'bg-[#1a1f2e] border-slate-700/50'
         }`}>
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden ${role?.includes('DOCTOR') ? 'bg-blue-600' : role === 'HOSPITAL_ADMIN' ? 'bg-purple-600' : 'bg-emerald-600'}`}>
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0 ${role?.includes('DOCTOR') ? 'bg-blue-600' : role === 'HOSPITAL_ADMIN' ? 'bg-purple-600' : 'bg-emerald-600'}`}>
             {userData?.profile_photo_hash ? (
               <img
                 src={`https://ipfs.io/ipfs/${userData.profile_photo_hash}`}
@@ -440,7 +440,7 @@ function App() {
               (userData?.name || userData?.hospital_name || '??').substring(0, 2).toUpperCase()
             )}
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden min-w-0">
             <p className="text-sm font-bold text-white truncate">{userData?.name || userData?.hospital_name || 'User'}</p>
             <span className={`text-[10px] uppercase font-bold tracking-widest ${
               role === 'HOSPITAL_ADMIN' ? 'text-purple-400' :
@@ -460,15 +460,15 @@ function App() {
               : 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-500';
             return (
               <button key={item.name} onClick={() => setActiveTab(item.name)} className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 ${isActive ? activeClasses : 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'}`}>
-                <item.icon size={20} />
-                <span className="text-sm font-semibold">{item.name}</span>
+                <item.icon size={20} className="flex-shrink-0" />
+                <span className="text-sm font-semibold truncate">{item.name}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-slate-800">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 text-slate-500 hover:text-rose-400 text-sm px-4 py-2 transition-colors duration-200"><LogOut size={18} /> Disconnect</button>
+        <div className="mt-auto pt-6 border-t border-slate-800 flex-shrink-0">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 text-slate-500 hover:text-rose-400 text-sm px-4 py-2 transition-colors duration-200"><LogOut size={18} className="flex-shrink-0" /> Disconnect</button>
         </div>
       </aside>
 
