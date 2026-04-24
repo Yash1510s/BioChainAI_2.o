@@ -80,10 +80,32 @@ Thumbs.db
 desktop.ini
 
 # ------------------------------------------
+# BACKEND TEMP / DEBUG SCRIPTS & DATA
+# ------------------------------------------
+backend/check_db.py
+backend/view_db.py
+backend/print_records.py
+backend/reset_pwd.py
+backend/migrate_records.py
+backend/update_names.py
+backend/update_records.py
+backend/tmp_update_patient.py
+backend/appointments_dump.json
+backend/temp_records.json
+backend/test_server.log
+backend/uvicorn.log
+
+# ------------------------------------------
 # LOGS & TEMP FILES
 # ------------------------------------------
 *.log
 logs/
 git_log*.txt
 git_reflog.txt
+
+# ------------------------------------------
+# AGENT / IDE CONFIG
+# ------------------------------------------
+.agent/
+.gemini/
 
