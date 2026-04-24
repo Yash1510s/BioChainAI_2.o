@@ -7,13 +7,7 @@
  * WARNING  : Unauthorized copying, modification, or distribution is prohibited.
  * =============================================================================
  */
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+export const API_BASE_URL = API_BASE;
+export default API_BASE;

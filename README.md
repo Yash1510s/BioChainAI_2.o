@@ -31,10 +31,32 @@ BioChainAI 2.0 is a full-stack decentralized healthcare management platform that
 
 ```
 BioChainAI 2.0/
-├── frontend/          # React + Vite (Tailwind CSS, Framer Motion)
-├── backend/           # FastAPI (Python) — REST APIs + WebSocket
-├── blockchain/        # Hardhat + Solidity Smart Contracts
-└── start_biochain.ps1 # One-click launcher for all services
+├── frontend/                    # React + Vite (Tailwind CSS, Framer Motion)
+│   └── src/
+│       ├── components/          # 16 reusable UI components
+│       ├── config/              # API configuration
+│       ├── hooks/               # Custom React hooks (useWallet)
+│       ├── App.jsx              # Main app + routing
+│       └── Dashboard.jsx        # Role-based dashboard
+├── backend/                     # FastAPI (Python) — REST APIs + WebSocket
+│   ├── app/
+│   │   ├── blockchain.py        # Web3.py contract interaction
+│   │   ├── encryption.py        # PII encryption utilities
+│   │   ├── pinata.py            # IPFS file upload
+│   │   └── vault.py             # Secure key vault
+│   ├── main.py                  # Core FastAPI server (1000+ lines)
+│   ├── seed.py                  # Database seeder
+│   └── simulator.py             # IoT vitals simulator
+├── blockchain/                  # Hardhat + Solidity Smart Contracts
+│   ├── contracts/
+│   │   └── BioChaincontract.sol # Main Ethereum smart contract
+│   └── scripts/
+│       ├── deploy.js            # Contract deployment
+│       └── setup_ecosystem.js   # Network bootstrap
+├── docker-compose.yml           # Container orchestration
+├── start_biochain.ps1           # One-click Windows launcher
+├── LICENSE                      # Proprietary license & copyright
+└── COPYRIGHT.md                 # Formal copyright declaration
 ```
 
 ```mermaid
@@ -171,12 +193,19 @@ cd frontend && npm run dev
 
 ---
 
-## 📜 License
+## 📜 Copyright & License
 
-This project is developed as an academic capstone for BCA studies.
+**Copyright © 2025–2026 BioChainAI Development Team. All Rights Reserved.**
+
+This software is proprietary and developed as an academic capstone project. Unauthorized copying, modification, distribution, or commercial use is strictly prohibited.
+
+See [LICENSE](./LICENSE) for full terms and [COPYRIGHT.md](./COPYRIGHT.md) for the formal copyright declaration.
+
+> ⚖️ A copyright registration application has been filed / is being filed with the Copyright Office, Government of India, under the Copyright Act, 1957.
 
 ---
 
 <p align="center">
-  Built with ❤️ by the BioChainAI Team
+  Built with ❤️ by the BioChainAI Team<br/>
+  <sub>© 2025–2026 BioChainAI Development Team · All Rights Reserved</sub>
 </p>
