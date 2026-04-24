@@ -7,3 +7,8 @@ httpx
 pymongo
 passlib[bcrypt]
 bcrypt
+certifi
+eth-account
+requests
+google-genai
+python-multipart

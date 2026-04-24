@@ -13,6 +13,10 @@ import requests
 import os
 import json
 import asyncio
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 import datetime
 # IMPORT your existing blockchain functions
 # Note: Removed 'from app.models import PatientSignup' because we are defining the enterprise models below
@@ -33,7 +37,7 @@ app.add_middleware(
 # ==========================================
 # 1. DATABASE CONNECTION
 # ==========================================
-MONGO_URI = "mongodb+srv://yash82040_db_user:YgU2spnJUDxYnrpZ@cluster0.j6ox3sl.mongodb.net/biochain_db?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/biochain_db")
 
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["biochain_db"]
@@ -721,7 +725,7 @@ def check_doctor_access(patient_email: str, doctor_wallet: str):
 from google import genai as google_genai
 
 # Get your free key from: https://aistudio.google.com/
-GEMINI_API_KEY = "AIzaSyBfJ1BpZpl0-spRHEjaVstvRfYx0zrbcqY"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 gemini_client = google_genai.Client(api_key=GEMINI_API_KEY)
 # Using flash-latest dynamically bypasses region zero-quota limits on newly created free-tier keys
 GEMINI_MODEL = "gemini-flash-latest"
