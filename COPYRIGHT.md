@@ -33,16 +33,16 @@ commercially known as **BioChainAI 2.0**.
 
 | Name            | Role                       | Contribution                                              |
 |-----------------|----------------------------|-----------------------------------------------------------|
-| Yash Sharma     | Lead Developer             | Full-stack architecture, Blockchain integration, AI module |
-| [Member 2 Name] | Backend Developer          | FastAPI server, MongoDB schema, Authentication             |
-| [Member 3 Name] | Frontend Developer         | React UI, Dashboard, Component library                    |
-| [Member 4 Name] | Blockchain Developer       | Solidity smart contract, Hardhat deployment scripts       |
+| Yash Singh      | Lead Developer             | Full-stack architecture, Blockchain integration, AI module |
+| Adonis Jeswin   | Backend Developer          | FastAPI server, MongoDB schema, Authentication             |
+| Romit Singh     | Frontend Developer         | React UI, Dashboard, Component library                    |
+| Nimish Arekar   | Blockchain Developer       | Solidity smart contract, Hardhat deployment scripts       |
 
 ---
 
 ## Description of the Work
 
-BioChainAI 2.0 is an original, independently developed software system comprising:
+Smart Blockchain and AI-Based Healthcare System (BioChainAI 2.0) is an original, independently developed software system comprising:
 
 ### 1. Backend (Python / FastAPI)
 A RESTful API server with WebSocket support implementing:
@@ -120,8 +120,8 @@ Unauthorized copying, modification, or distribution is strictly prohibited.
 ## Contact for Copyright Enquiries
 
 - **GitHub Repository**: https://github.com/Yash1510s/BioChainAI_2.o
-- **Email**: [your-email@example.com]
-- **Institution**: [Your College/University Name], [City], India
+- **Email**: yash82040@gmail.com
+- **Institution**: Xavier Institute of Engineering, Mahim, Mumbai, India
 
 ---
 
