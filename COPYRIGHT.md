@@ -31,12 +31,12 @@ commercially known as **BioChainAI 2.0**.
 
 ## Authors / Copyright Holders
 
-| Name            | Role                       | Contribution                                              |
-|-----------------|----------------------------|-----------------------------------------------------------|
-| Yash Singh      | Lead Developer             | Full-stack architecture, Blockchain integration, AI module |
-| Adonis Jeswin   | Backend Developer          | FastAPI server, MongoDB schema, Authentication             |
-| Romit Singh     | Frontend Developer         | React UI, Dashboard, Component library                    |
-| Nimish Arekar   | Blockchain Developer       | Solidity smart contract, Hardhat deployment scripts       |
+| Name             | Role                       | Contribution                                               |
+|------------------|----------------------------|----------------------------------------------------------- |
+| Yash Vijay Singh | Lead Developer             | Full-stack architecture, Blockchain integration, AI module |
+| Adonis Jeswin    | Backend Developer          | FastAPI server, MongoDB schema, Authentication             |
+| Romit Singh      | Frontend Developer         | React UI, Dashboard, Component library                     |
+| Nimish Arekar    | Blockchain Developer       | Solidity smart contract, Hardhat deployment scripts        |
 
 ---
 
