@@ -109,3 +109,16 @@ git_reflog.txt
 .agent/
 .gemini/
 
+# ------------------------------------------
+# DOCUMENTATION GENERATORS & LOCAL SCRATCH
+# ------------------------------------------
+scratch/
+generate_docx.py
+generate_exact_doc.py
+BioChainAI_Source_Code_Report*
+BioChainAI_Code_Documentation*
+*.doc
+*.docx
+~$*
+copyright/
+
