@@ -42,12 +42,13 @@ const AIAssistantWidget = ({ userData, role }) => {
         setInputText('');
         setIsTyping(true);
 
-        const userId = role === 'PATIENT' ? userData?.email : userData?.wallet_address;
+        const userId = role === 'PATIENT' ? (userData?.email || 'patient@biochain.ai') : (userData?.wallet_address || '0xAdminWallet');
+        const safeRole = role || 'USER';
 
         try {
             const res = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
                 user_id: userId,
-                role: role,
+                role: safeRole,
                 message: userMsg
             });
             // Strip markdown bold (**text**) from Gemini output

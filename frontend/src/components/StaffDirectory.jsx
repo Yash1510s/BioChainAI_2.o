@@ -47,9 +47,18 @@ const StaffDirectory = () => {
         setMessage("⏳ Registering identity on BioChain...");
 
         try {
-            const finalName = formData.name.toLowerCase().startsWith('dr.') ? formData.name : `Dr. ${formData.name}`;
+            const finalName = (formData.name.toLowerCase().startsWith('dr.') ? formData.name : `Dr. ${formData.name}`).trim();
             
-            await axios.post(`${API_BASE_URL}/api/admin/onboard-doctor`, { ...formData, name: finalName });
+            await axios.post(`${API_BASE_URL}/api/admin/onboard-doctor`, {
+                ...formData,
+                name: finalName,
+                email: formData.email.trim(),
+                phone: formData.phone.trim(),
+                wallet_address: formData.wallet_address.trim(),
+                specialization: formData.specialization.trim(),
+                department: formData.department.trim(),
+                license_number: formData.license_number.trim()
+            });
             
             setMessage("✅ Doctor successfully onboarded & verified!");
             setFormData({ name: '', email: '', phone: '', wallet_address: '', specialization: '', department: '', role: '', license_number: '' });

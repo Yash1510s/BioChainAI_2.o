@@ -364,15 +364,21 @@ function App() {
           message: msg
         });
 
-        if (res.data.status === "Success") {
-          setRole(res.data.role); // 'DOCTOR' or 'HOSPITAL_ADMIN'
+        console.log("Login API Response:", res.data);
+
+        if (res.data.status === "Success" || res.data.status === "Active" || res.data.role) {
+          const authRole = res.data.role || (selectedRole === 'ADMIN' ? 'HOSPITAL_ADMIN' : 'DOCTOR');
+          setRole(authRole);
           setWallet(accounts[0]);
           setUserData(res.data);
           setView('dashboard');
+        } else {
+          alert(res.data.message || "Authentication failed.");
         }
       }
     } catch (err) {
-      alert(err.response?.data?.detail || "Login Failed");
+      console.error("Login Error:", err);
+      alert(err.response?.data?.detail || err.message || "Login Failed");
     }
   };
 
@@ -455,7 +461,7 @@ function App() {
               role === 'HOSPITAL_ADMIN' ? 'text-purple-400' :
               role?.includes('DOCTOR') ? 'text-blue-400' :
               'text-slate-500'
-            }`}>{role?.replace('_', ' ')}</span>
+            }`}>{userData?.staff_designation || role?.replace('_', ' ')}</span>
           </div>
         </div>
 

@@ -78,9 +78,10 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
         if (!selectedPatient) return;
         try {
             const pid = selectedPatient.email || selectedPatient.id;
-            const res = await axios.get(`${API_BASE_URL}/record/patient/${pid}`);
+            const docParam = role?.includes('DOCTOR') && userData?.wallet_address ? `?doctor_wallet=${userData.wallet_address}` : '';
+            const res = await axios.get(`${API_BASE_URL}/record/patient/${pid}${docParam}`);
             if (res.data.status === "Success") {
-                setPatientRecords(res.data.records);
+                setPatientRecords(res.data.records || []);
             }
 
             // Fetch full profile for doctor if they only got '{name, email}' via appointments tab
@@ -92,6 +93,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
             }
         } catch (err) {
             console.error("Error fetching patient details:", err);
+            setPatientRecords([]);
         }
     };
 
