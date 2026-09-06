@@ -9,7 +9,7 @@
  */
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, getIpfsUrl } from './config';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity, FileText, User, Heart, Phone, Clock,
@@ -58,7 +58,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
             alert("⚠️ Please select both Date and Time to approve this appointment.");
             return;
         }
-        
+
         try {
             await axios.put(`${API_BASE_URL}/appointments/approve/${appId}`, {
                 appointment_date: data.date,
@@ -126,7 +126,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
         if (role === 'HOSPITAL_ADMIN') return;
 
         const patientId = selectedPatient?.wallet_address || selectedPatient?.email || userData?.wallet_address || userData?.email || 'demo-patient';
-        
+
         let ws;
         let reconnectTimer;
 
@@ -236,7 +236,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                             {role?.includes('DOCTOR') && !selectedPatient ? (
                                 <>
                                     <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                                        Welcome back, {userData?.name?.replace(/^Dr\.\s*/i, '') || 'Doctor'} 
+                                        Welcome back, {userData?.name?.replace(/^Dr\.\s*/i, '') || 'Doctor'}
                                         {userData?.is_verified && (
                                             <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
                                                 <BadgeCheck className="text-blue-400" size={16} />
@@ -251,20 +251,20 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                             ) : (
                                 <>
                                     <h1 className="text-3xl font-bold tracking-tight">
-                                        {selectedPatient ? `Patient: ${selectedPatient.name}` : 
-                                         role === 'HOSPITAL_ADMIN' ? `${userData?.hospital_name || 'Hospital Network'}` : 
-                                         userData?.name || "Patient Profile"}
+                                        {selectedPatient ? `Patient: ${selectedPatient.name}` :
+                                            role === 'HOSPITAL_ADMIN' ? `${userData?.hospital_name || 'Hospital Network'}` :
+                                                userData?.name || "Patient Profile"}
                                     </h1>
                                     <p className="text-slate-400 text-sm">
-                                        {selectedPatient ? 'Viewing Live Clinical Data' : 
-                                         role === 'HOSPITAL_ADMIN' ? 'Enterprise Node Control Center' : 
-                                         'Manage your decentralized health ecosystem.'}
+                                        {selectedPatient ? 'Viewing Live Clinical Data' :
+                                            role === 'HOSPITAL_ADMIN' ? 'Enterprise Node Control Center' :
+                                                'Manage your decentralized health ecosystem.'}
                                     </p>
                                 </>
                             )}
                         </div>
                     </div>
- 
+
                     {role?.includes('DOCTOR') && !selectedPatient && (
                         <div className="flex gap-3">
                             <div className="relative">
@@ -334,7 +334,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                     <Stethoscope size={18} className="text-purple-400" /> Quick Actions
                                 </h3>
                                 <div className="space-y-3">
-                                    <button 
+                                    <button
                                         onClick={() => setActiveTab('Staff Directory')}
                                         className="w-full bg-[#0b0e14] hover:bg-purple-900/20 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition-all duration-200 group border border-slate-800 hover:border-purple-500/30"
                                     >
@@ -344,7 +344,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                         </div>
                                         <ChevronRight size={16} className="text-slate-600 group-hover:text-purple-400 group-hover:translate-x-1 transition-all duration-200" />
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setActiveTab('Audit Logs')}
                                         className="w-full bg-[#0b0e14] hover:bg-blue-900/20 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition-all duration-200 group border border-slate-800 hover:border-blue-500/30"
                                     >
@@ -354,7 +354,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                         </div>
                                         <ChevronRight size={16} className="text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-200" />
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setActiveTab('Node Overview')}
                                         className="w-full bg-[#0b0e14] hover:bg-emerald-900/20 p-4 rounded-xl flex items-center justify-between text-sm font-bold text-slate-300 transition-all duration-200 group border border-slate-800 hover:border-emerald-500/30"
                                     >
@@ -375,12 +375,11 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                 <div className="relative pl-6 border-l-2 border-slate-800 space-y-6">
                                     {data?.activities?.map((act, idx) => (
                                         <div key={idx} className="relative">
-                                            <div className={`absolute -left-[25px] top-1 w-3 h-3 rounded-full border-2 border-[#121620] shadow-lg ${
-                                                act.type === 'system' ? 'bg-emerald-500 shadow-emerald-500/20' :
-                                                act.type === 'record' ? 'bg-blue-500 shadow-blue-500/20' :
-                                                act.type === 'contract' ? 'bg-amber-500 shadow-amber-500/20' :
-                                                'bg-purple-500 shadow-purple-500/20'
-                                            }`}></div>
+                                            <div className={`absolute -left-[25px] top-1 w-3 h-3 rounded-full border-2 border-[#121620] shadow-lg ${act.type === 'system' ? 'bg-emerald-500 shadow-emerald-500/20' :
+                                                    act.type === 'record' ? 'bg-blue-500 shadow-blue-500/20' :
+                                                        act.type === 'contract' ? 'bg-amber-500 shadow-amber-500/20' :
+                                                            'bg-purple-500 shadow-purple-500/20'
+                                                }`}></div>
                                             <h4 className="text-sm font-bold text-white">{act.action}</h4>
                                             <p className="text-xs text-slate-500 mt-1">Network: BioChain Protocol</p>
                                             <p className="text-[10px] text-slate-600 font-mono mt-1">{act.time}</p>
@@ -410,12 +409,12 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                         </h3>
 
                         {/* Logic to determine WHICH vitals to show */}
-                         <VitalsWidget
+                        <VitalsWidget
                             title={selectedPatient ? "Patient" : "My"}
                             values={liveVitals ? { ...liveVitals, bp: "120/80", weight: 70 } : (
                                 selectedPatient || role === 'PATIENT' ?
-                                { hr: 72, spo2: 98, bp: "120/80", weight: 70 } : 
-                                { hr: 65, spo2: 99, bp: "118/76", weight: 75 }  
+                                    { hr: 72, spo2: 98, bp: "120/80", weight: 70 } :
+                                    { hr: 65, spo2: 99, bp: "118/76", weight: 75 }
                             )}
                         />
                     </div>
@@ -464,13 +463,13 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
 
                         {/* --- 3. DOCTOR'S QUEUE (Dynamic Appointments) --- */}
                         <div className="space-y-8 mt-8">
-                            
+
                             {/* Section A: Pending Requests (Needs Action) */}
                             <div className="bg-[#121620] rounded-3xl p-6 border border-yellow-500/30 shadow-xl">
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
                                     <Clock size={18} className="text-yellow-400" /> Pending Consultation Requests
                                 </h3>
-                                
+
                                 <div className="space-y-4">
                                     {appointments.filter(a => a.status === 'Pending').length > 0 ? (
                                         appointments.filter(a => a.status === 'Pending').map((app) => (
@@ -479,20 +478,20 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                                     <h4 className="font-bold text-white text-lg">{app.patient_name}</h4>
                                                     <p className="text-sm text-slate-400 mt-1">Reason: <span className="italic text-slate-300">"{app.reason}"</span></p>
                                                 </div>
-                                                
+
                                                 {/* Approval Controls */}
                                                 <div className="flex flex-wrap items-center gap-3 bg-[#0b0e14] p-2 rounded-xl border border-slate-800">
-                                                    <input 
-                                                        type="date" 
+                                                    <input
+                                                        type="date"
                                                         className="bg-transparent text-sm text-white outline-none border-r border-slate-700 pr-3 cursor-pointer [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
-                                                        onChange={(e) => setApprovalInputs({...approvalInputs, [app._id]: {...approvalInputs[app._id], date: e.target.value}})}
+                                                        onChange={(e) => setApprovalInputs({ ...approvalInputs, [app._id]: { ...approvalInputs[app._id], date: e.target.value } })}
                                                     />
-                                                    <input 
-                                                        type="time" 
+                                                    <input
+                                                        type="time"
                                                         className="bg-transparent text-sm text-white outline-none border-r border-slate-700 pr-3 cursor-pointer [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
-                                                        onChange={(e) => setApprovalInputs({...approvalInputs, [app._id]: {...approvalInputs[app._id], time: e.target.value}})}
+                                                        onChange={(e) => setApprovalInputs({ ...approvalInputs, [app._id]: { ...approvalInputs[app._id], time: e.target.value } })}
                                                     />
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleApprove(app._id)}
                                                         className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1"
                                                     >
@@ -512,7 +511,7 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
                                     <CheckCircle size={18} className="text-emerald-400" /> Scheduled Appointments
                                 </h3>
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {appointments.filter(a => a.status === 'Scheduled').length > 0 ? (
                                         appointments.filter(a => a.status === 'Scheduled').map((app) => (
@@ -608,24 +607,24 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                         </motion.div>
                     </div>
                 )}
-                
+
                 {/* --- 4. DOCTOR VIEWING PATIENT (The Missing Grid!) --- */}
                 {role?.includes('DOCTOR') && selectedPatient && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 border-t border-slate-800 pt-8 print:hidden">
-                        
+
                         {/* Profile Info */}
                         <div className="bg-[#121620] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
                             <h3 className="text-2xl font-bold text-white mb-1">{selectedPatient.name}</h3>
                             <p className="text-xs text-emerald-500 font-mono mb-6 flex items-center gap-1">
-                                <Shield size={12}/> ACTIVE PATIENT
+                                <Shield size={12} /> ACTIVE PATIENT
                             </p>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-[#0b0e14] p-3 rounded-xl border border-slate-800">
-                                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Heart size={12}/> Blood Type</p>
+                                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><Heart size={12} /> Blood Type</p>
                                     <p className="font-bold text-white">{patientProfile?.bloodGroup || selectedPatient?.bloodGroup || "N/A"}</p>
                                 </div>
                                 <div className="bg-[#0b0e14] p-3 rounded-xl border border-slate-800">
-                                    <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><AlertOctagon size={12}/> Allergies</p>
+                                    <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><AlertOctagon size={12} /> Allergies</p>
                                     <p className="font-bold text-white">{patientProfile?.allergies || selectedPatient?.allergies || "None"}</p>
                                 </div>
                             </div>
@@ -637,14 +636,14 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                 <Zap size={18} className="text-yellow-400" /> Quick Actions
                             </h3>
                             <div className="space-y-3">
-                                <button 
-                                    onClick={() => setIsRecordModalOpen(true)} 
+                                <button
+                                    onClick={() => setIsRecordModalOpen(true)}
                                     className="w-full bg-blue-600 hover:bg-blue-500 p-4 rounded-xl flex items-center gap-3 text-sm font-bold text-white transition shadow-lg shadow-blue-900/20 group"
                                 >
-                                    <FileText size={20} className="group-hover:scale-110 transition-transform" /> 
+                                    <FileText size={20} className="group-hover:scale-110 transition-transform" />
                                     Issue Medical Record (Rx)
                                 </button>
-                                
+
                                 <button className="w-full bg-slate-800 p-4 rounded-xl flex items-center gap-3 text-sm font-bold text-slate-400 cursor-not-allowed border border-slate-700">
                                     <Stethoscope size={20} /> Request Lab Test
                                 </button>
@@ -706,26 +705,26 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                                                         </span>
                                                     ) : (
                                                         <span className="bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max">
-                                                            <Shield size={10}/> {record.doctor_name 
-                                                                ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`) 
+                                                            <Shield size={10} /> {record.doctor_name
+                                                                ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`)
                                                                 : `Dr. ${record.doctor_wallet?.substring(0, 6)}...`}
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="py-4 px-4 text-center">
-                                                    <button 
+                                                    <button
                                                         onClick={() => setSelectedHistoryRecord({
                                                             title: record.title,
                                                             date: new Date(record.timestamp).toLocaleDateString(),
-                                                            source: record.isSelfUploaded 
-                                                                ? "Self-Added" 
-                                                                : (record.doctor_name 
-                                                                    ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`) 
+                                                            source: record.isSelfUploaded
+                                                                ? "Self-Added"
+                                                                : (record.doctor_name
+                                                                    ? (record.doctor_name.includes('Dr.') ? record.doctor_name : `Dr. ${record.doctor_name}`)
                                                                     : `Dr. ${record.doctor_wallet?.substring(0, 6)}...`),
                                                             hospital: record.hospital_name,
                                                             diagnosis: record.diagnosis,
                                                             ipfs_hashes: record.ipfs_hashes || (record.ipfs_hash ? [record.ipfs_hash] : []) // Handle both new array and old single string
-                                                        })} 
+                                                        })}
                                                         className="text-slate-300 hover:text-white font-bold text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition"
                                                     >
                                                         Details
@@ -742,11 +741,11 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
 
                 {/* --- ISSUE RX MODAL --- */}
                 {role?.includes('DOCTOR') && selectedPatient && (
-                    <IssueRecordModal 
-                        isOpen={isRecordModalOpen} 
-                        onClose={() => setIsRecordModalOpen(false)} 
-                        patient={selectedPatient} 
-                        doctorData={userData} 
+                    <IssueRecordModal
+                        isOpen={isRecordModalOpen}
+                        onClose={() => setIsRecordModalOpen(false)}
+                        patient={selectedPatient}
+                        doctorData={userData}
                         onSuccess={fetchPatientRecords}
                     />
                 )}
@@ -756,100 +755,100 @@ function Dashboard({ role, userData, selectedPatient, setSelectedPatient, setAct
                     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-8 print:static print:overflow-visible print:bg-white print:p-0">
                         <div className="flex min-h-full items-start justify-center print:block print:min-h-0">
                             <div className="bg-[#121620] print:bg-white border border-slate-700 print:border-none w-full max-w-3xl rounded-3xl p-8 shadow-2xl print:p-0 print:shadow-none relative mt-4 mb-10 print:m-0">
-                            <button onClick={() => setSelectedHistoryRecord(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition">
-                                <X size={24} />
-                            </button>
-                            <div>
-                                <div className="flex justify-between items-start border-b border-slate-800 pb-6 mb-6">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                                            <Activity className="text-emerald-500" /> BioChain Medical Record
-                                        </h2>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-white">{selectedHistoryRecord.hospital}</p>
-                                        <p className="text-xs text-slate-500">{selectedHistoryRecord.date}</p>
-                                    </div>
-                                </div>
-                                <div className="mb-6">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Record Title</h4>
-                                    <p className="text-lg font-bold text-white">{selectedHistoryRecord.title}</p>
-                                </div>
-                                <div className="mb-8">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Clinical Notes</h4>
-                                    <div className="bg-[#0b0e14] p-4 rounded-xl border border-slate-800 text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                        {selectedHistoryRecord.diagnosis}
-                                    </div>
-                                </div>
-                                
-                                {/* ATTACHED DOCUMENTS SECTION */}
-                                {selectedHistoryRecord.ipfs_hashes && selectedHistoryRecord.ipfs_hashes.length > 0 && (
-                                    <div className="mb-8 border-t border-slate-800 pt-6">
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                            <FileText size={16} className="text-blue-400"/> Attached Documents ({selectedHistoryRecord.ipfs_hashes.length})
-                                        </h4>
-                                        <div className="space-y-6">
-                                            {selectedHistoryRecord.ipfs_hashes.map((hash, idx) => (
-                                                <div key={idx} className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900/50">
-                                                    <div className="bg-slate-800/80 px-4 py-2 flex justify-between items-center border-b border-slate-700">
-                                                        <span className="text-xs font-bold text-slate-400">Document {idx + 1}</span>
-                                                        <a 
-                                                            href={`https://ipfs.io/ipfs/${hash}`}
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                            className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold"
-                                                        >
-                                                            Open Full Screen <ChevronRight size={14} />
-                                                        </a>
-                                                    </div>
-                                                    <div className="h-96 w-full relative group bg-[#0b0e14]">
-                                                        {/* Loading/Fallback Layer */}
-                                                        <div className="absolute inset-0 flex items-center justify-center text-slate-600 flex-col gap-2 z-0">
-                                                            <Activity className="animate-spin text-blue-500" />
-                                                            <span className="text-xs font-bold">Loading from IPFS...</span>
-                                                        </div>
-                                                        
-                                                        {/* Attempt to load as an image first. If it fails (e.g., PDF), the onError handler hides it,
-                                                            and the iframe behind it becomes visible. We use object-cover/contain to fit the image perfectly. */}
-                                                        <div className="absolute inset-0 z-10 flex items-center justify-center p-2">
-                                                            <iframe 
-                                                                src={`https://ipfs.io/ipfs/${hash}`}
-                                                                className="w-full h-full border-none"
-                                                                style={{ backgroundColor: 'transparent' }}
-                                                                title={`Medical Document ${idx + 1} Fallback`}
-                                                            />
-                                                            {/* We place the img on top. If it's a valid image, it covers the iframe. If not, it's hidden. */}
-                                                            <img 
-                                                                src={`https://ipfs.io/ipfs/${hash}`}
-                                                                alt={`Medical Document ${idx + 1}`}
-                                                                className="absolute inset-0 w-full h-full object-contain bg-[#0b0e14] z-20"
-                                                                onError={(e) => {
-                                                                    e.target.style.display = 'none'; // Hide img if it's a PDF/unsupported
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        
-                                                        {/* Full Screen View Button Overlay */}
-                                                        <a href={`https://ipfs.io/ipfs/${hash}`} target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition shadow-lg z-30 flex items-center gap-2">
-                                                            Open Full Screen <ChevronRight size={16} />
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                <button onClick={() => setSelectedHistoryRecord(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition">
+                                    <X size={24} />
+                                </button>
+                                <div>
+                                    <div className="flex justify-between items-start border-b border-slate-800 pb-6 mb-6">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                                                <Activity className="text-emerald-500" /> BioChain Medical Record
+                                            </h2>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-white">{selectedHistoryRecord.hospital}</p>
+                                            <p className="text-xs text-slate-500">{selectedHistoryRecord.date}</p>
                                         </div>
                                     </div>
-                                )}
+                                    <div className="mb-6">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Record Title</h4>
+                                        <p className="text-lg font-bold text-white">{selectedHistoryRecord.title}</p>
+                                    </div>
+                                    <div className="mb-8">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Clinical Notes</h4>
+                                        <div className="bg-[#0b0e14] p-4 rounded-xl border border-slate-800 text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                            {selectedHistoryRecord.diagnosis}
+                                        </div>
+                                    </div>
 
-                                <div className="flex justify-between items-end border-t border-slate-800 pt-6">
-                                    <div>
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Source</h4>
-                                        <p className="text-sm font-bold text-white">{selectedHistoryRecord.source}</p>
+                                    {/* ATTACHED DOCUMENTS SECTION */}
+                                    {selectedHistoryRecord.ipfs_hashes && selectedHistoryRecord.ipfs_hashes.length > 0 && (
+                                        <div className="mb-8 border-t border-slate-800 pt-6">
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                <FileText size={16} className="text-blue-400" /> Attached Documents ({selectedHistoryRecord.ipfs_hashes.length})
+                                            </h4>
+                                            <div className="space-y-6">
+                                                {selectedHistoryRecord.ipfs_hashes.map((hash, idx) => (
+                                                    <div key={idx} className="border border-slate-700 rounded-xl overflow-hidden bg-slate-900/50">
+                                                        <div className="bg-slate-800/80 px-4 py-2 flex justify-between items-center border-b border-slate-700">
+                                                            <span className="text-xs font-bold text-slate-400">Document {idx + 1}</span>
+                                                            <a
+                                                                href={getIpfsUrl(hash)}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold"
+                                                            >
+                                                                Open Full Screen <ChevronRight size={14} />
+                                                            </a>
+                                                        </div>
+                                                        <div className="h-96 w-full relative group bg-[#0b0e14]">
+                                                            {/* Loading/Fallback Layer */}
+                                                            <div className="absolute inset-0 flex items-center justify-center text-slate-600 flex-col gap-2 z-0">
+                                                                <Activity className="animate-spin text-blue-500" />
+                                                                <span className="text-xs font-bold">Loading from IPFS...</span>
+                                                            </div>
+
+                                                            {/* Attempt to load as an image first. If it fails (e.g., PDF), the onError handler hides it,
+                                                            and the iframe behind it becomes visible. We use object-cover/contain to fit the image perfectly. */}
+                                                            <div className="absolute inset-0 z-10 flex items-center justify-center p-2">
+                                                                <iframe
+                                                                    src={getIpfsUrl(hash)}
+                                                                    className="w-full h-full border-none rounded-lg"
+                                                                    style={{ backgroundColor: 'transparent' }}
+                                                                    title={`Medical Document ${idx + 1} Fallback`}
+                                                                />
+                                                                {/* We place the img on top. If it's a valid image, it covers the iframe. If not, it's hidden. */}
+                                                                <img
+                                                                    src={getIpfsUrl(hash)}
+                                                                    alt={`Medical Document ${idx + 1}`}
+                                                                    className="absolute inset-0 w-full h-full object-contain bg-[#0b0e14] z-20"
+                                                                    onError={(e) => {
+                                                                        e.target.style.display = 'none'; // Hide img if it's a PDF/unsupported
+                                                                    }}
+                                                                />
+                                                            </div>
+
+                                                            {/* Full Screen View Button Overlay */}
+                                                            <a href={getIpfsUrl(hash)} target="_blank" rel="noopener noreferrer" className="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold opacity-0 group-hover:opacity-100 transition shadow-lg z-30 flex items-center gap-2">
+                                                                Open Full Screen <ChevronRight size={16} />
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-end border-t border-slate-800 pt-6">
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Source</h4>
+                                            <p className="text-sm font-bold text-white">{selectedHistoryRecord.source}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 )}
 
             </div>

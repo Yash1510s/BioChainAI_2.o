@@ -6,6 +6,7 @@
 # WARNING  : Unauthorized copying, modification, or distribution is prohibited.
 # =============================================================================
 from fastapi import FastAPI, HTTPException, Body, File, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -539,6 +540,35 @@ async def upload_to_ipfs(files: List[UploadFile] = File(...)):
             
     except Exception as e:
         return {"status": "Error", "detail": str(e)}
+
+@app.get("/ipfs/file/{ipfs_hash}")
+def get_ipfs_file(ipfs_hash: str):
+    """
+    Proxy endpoint to stream IPFS files via Pinata Dedicated Gateway.
+    Prevents public gateway SSL certificate mismatch and network blocking issues.
+    """
+    gateway = os.getenv("PINATA_GATEWAY", "https://silver-absent-pelican-610.mypinata.cloud").rstrip("/")
+    if not gateway.startswith("http"):
+        gateway = f"https://{gateway}"
+    
+    target_url = f"{gateway}/ipfs/{ipfs_hash}"
+    try:
+        req = requests.get(target_url, stream=True, timeout=20)
+        if req.status_code == 200:
+            media_type = req.headers.get("Content-Type", "application/pdf")
+            return StreamingResponse(
+                req.iter_content(chunk_size=1024 * 64),
+                media_type=media_type,
+                headers={
+                    "Content-Disposition": f"inline; filename={ipfs_hash}",
+                    "Access-Control-Allow-Origin": "*",
+                    "Cache-Control": "public, max-age=86400"
+                }
+            )
+        else:
+            raise HTTPException(status_code=req.status_code, detail="Unable to retrieve file from IPFS")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"IPFS Gateway Proxy Error: {str(e)}")
 
 # ==========================================
 # 12. PATIENT DIRECTORY (CRM FOR DOCTORS)

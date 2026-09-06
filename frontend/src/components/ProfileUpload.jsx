@@ -9,6 +9,7 @@
  */
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 const ProfileUpload = ({ userEmail }) => {
   const [file, setFile] = useState(null);
@@ -35,22 +36,22 @@ const ProfileUpload = ({ userEmail }) => {
 
       // Step 2: FastAPI ke naye IPFS endpoint par file bhejo
       // Make sure 8000 tumhara backend port hai
-      const uploadRes = await axios.post("http://localhost:8000/upload/ipfs", formData, {
+      const uploadRes = await axios.post(`${API_BASE_URL}/upload/ipfs`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
-      const ipfsHash = uploadRes.data.ipfs_hash;
+      const ipfsHash = uploadRes.data.ipfs_hashes ? uploadRes.data.ipfs_hashes[0] : uploadRes.data.ipfs_hash;
       setMessage(`📦 IPFS Hash Milya: ${ipfsHash} ... Profile update ho rahi hai!`);
 
       // Step 3: Naye Hash ko MongoDB mein User Profile ke sath link karo
-      const updateRes = await axios.put(`http://localhost:8000/update/patient/${userEmail}`, {
+      const updateRes = await axios.put(`${API_BASE_URL}/update/patient/${userEmail}`, {
         profile_photo_hash: ipfsHash
       });
 
       if (updateRes.data.status === "Success") {
-         setMessage("✅ Boom! Profile Successfully Updated with Web3 Hash!");
+        setMessage("✅ Boom! Profile Successfully Updated with Web3 Hash!");
       }
-      
+
     } catch (error) {
       console.error(error);
       setMessage("❌ Error: " + (error.response?.data?.detail || error.message));
@@ -64,9 +65,9 @@ const ProfileUpload = ({ userEmail }) => {
       <h3>Upload Medical Doc / Photo</h3>
       <input type="file" onChange={handleFileChange} style={{ marginBottom: "10px" }} />
       <br />
-      <button 
-        onClick={handleUploadAndSave} 
-        disabled={loading} 
+      <button
+        onClick={handleUploadAndSave}
+        disabled={loading}
         style={{ padding: "10px 20px", backgroundColor: "#00ffcc", color: "black", fontWeight: "bold", border: "none", borderRadius: "5px", cursor: "pointer" }}
       >
         {loading ? "Uploading to Web3..." : "Secure Upload"}

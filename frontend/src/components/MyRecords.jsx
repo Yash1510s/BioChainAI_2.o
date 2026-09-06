@@ -9,7 +9,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getIpfsUrl } from '../config';
 import { FileText, Download, Printer, ShieldCheck, Calendar, Building, User, Activity, X, Plus, UploadCloud } from 'lucide-react';
 
 const MyRecords = ({ userData }) => {
@@ -121,7 +121,7 @@ const MyRecords = ({ userData }) => {
                                 <FileText size={16} className="text-slate-400" /> Details
                             </button>
                             <a 
-                                href={`https://ipfs.io/ipfs/${record.ipfs_hash}`} 
+                                href={getIpfsUrl(record.ipfs_hash || (record.ipfs_hashes && record.ipfs_hashes[0]))} 
                                 target="_blank" 
                                 rel="noreferrer"
                                 className="px-4 bg-[#0b0e14] hover:bg-blue-600 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center shadow-lg hover:shadow-blue-900/20"
@@ -182,7 +182,7 @@ const MyRecords = ({ userData }) => {
                                                     <div className="bg-slate-800/80 print:hidden px-4 py-2 flex justify-between items-center border-b border-slate-700">
                                                         <span className="text-xs font-bold text-slate-400">Document {idx + 1}</span>
                                                         <a 
-                                                            href={`https://ipfs.io/ipfs/${hash}`}
+                                                            href={getIpfsUrl(hash)}
                                                             target="_blank" 
                                                             rel="noopener noreferrer"
                                                             className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold"
@@ -201,14 +201,14 @@ const MyRecords = ({ userData }) => {
                                                             and the iframe behind it becomes visible. We use object-cover/contain to fit the image perfectly. */}
                                                         <div className="absolute inset-0 z-10 flex items-center justify-center p-2 print:p-0">
                                                             <iframe 
-                                                                src={`https://ipfs.io/ipfs/${hash}`}
-                                                                className="w-full h-full border-none print:w-full print:h-full"
+                                                                src={getIpfsUrl(hash)}
+                                                                className="w-full h-full border-none print:w-full print:h-full rounded-lg"
                                                                 style={{ backgroundColor: 'transparent' }}
                                                                 title={`Medical Document ${idx + 1} Fallback`}
                                                             />
                                                             {/* We place the img on top. If it's a valid image, it covers the iframe. If not, it's hidden. */}
                                                             <img 
-                                                                src={`https://ipfs.io/ipfs/${hash}`}
+                                                                src={getIpfsUrl(hash)}
                                                                 alt={`Medical Document ${idx + 1}`}
                                                                 className="absolute inset-0 w-full h-full object-contain bg-[#0b0e14] print:bg-transparent z-20"
                                                                 onError={(e) => {

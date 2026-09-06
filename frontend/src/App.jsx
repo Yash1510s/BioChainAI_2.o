@@ -9,7 +9,7 @@
  */
 import { useState } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, getIpfsUrl } from './config';
 import {
   Eye, EyeOff, Mail, Wallet, ArrowRight, ArrowLeft, Activity,
   Home, Users, FileText, User, Settings, LogOut, Heart, Clock, Shield,
@@ -196,84 +196,84 @@ const LoginGate = ({ onLogin, onCreateIdentity, showOtp, otpEmail }) => {
             </div>
 
           ) : (
-          /* ---- NORMAL LOGIN MODE ---- */
-          <>
-            {!showOtp ? (
+            /* ---- NORMAL LOGIN MODE ---- */
             <>
-              <p className="text-slate-400 mb-6 text-sm flex-1">Secure login with 2FA protection for your medical records.</p>
-              {!showForm ? (
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="group w-full py-4 bg-gradient-to-br from-emerald-500 to-teal-700 hover:from-emerald-400 hover:to-teal-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 shadow-xl shadow-emerald-500/10 active:scale-[0.98] mb-4 border border-emerald-400/20"
-                >
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                  Continue with Email
-                </button>
-              ) : (
-                <form onSubmit={handlePatientSubmit} className="space-y-3 mb-4">
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    required
-                    className="w-full bg-[#0b0e14] p-3 rounded-xl border border-slate-700 text-white focus:border-emerald-500 focus:outline-none"
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      required
-                      className="w-full bg-[#0b0e14] p-3 rounded-xl border border-slate-700 text-white focus:border-emerald-500 focus:outline-none"
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
+              {!showOtp ? (
+                <>
+                  <p className="text-slate-400 mb-6 text-sm flex-1">Secure login with 2FA protection for your medical records.</p>
+                  {!showForm ? (
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-500 hover:text-white"
+                      onClick={() => setShowForm(true)}
+                      className="group w-full py-4 bg-gradient-to-br from-emerald-500 to-teal-700 hover:from-emerald-400 hover:to-teal-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 shadow-xl shadow-emerald-500/10 active:scale-[0.98] mb-4 border border-emerald-400/20"
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                      Continue with Email
                     </button>
+                  ) : (
+                    <form onSubmit={handlePatientSubmit} className="space-y-3 mb-4">
+                      <input
+                        type="email"
+                        placeholder="Email Address"
+                        required
+                        className="w-full bg-[#0b0e14] p-3 rounded-xl border border-slate-700 text-white focus:border-emerald-500 focus:outline-none"
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Password"
+                          required
+                          className="w-full bg-[#0b0e14] p-3 rounded-xl border border-slate-700 text-white focus:border-emerald-500 focus:outline-none"
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-3 text-slate-500 hover:text-white"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold transition-all duration-300 shadow-lg shadow-emerald-500/20 active:scale-95"
+                      >
+                        Get OTP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForgotMode(true)}
+                        className="w-full text-xs text-amber-500 hover:text-amber-400 transition text-right pr-1"
+                      >
+                        Forgot Password?
+                      </button>
+                    </form>
+                  )}
+                </>
+              ) : (
+                <form onSubmit={handlePatientSubmit} className="space-y-4 mb-4">
+                  <div className="text-center">
+                    <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1">Verify Identity</p>
+                    <p className="text-slate-500 text-xs mb-4">Enter the code sent to your terminal</p>
                   </div>
+                  <input
+                    type="text"
+                    placeholder="000000"
+                    maxLength="6"
+                    required
+                    className="w-full bg-[#0b0e14] p-4 rounded-xl border-2 border-emerald-500/50 text-white text-center text-2xl tracking-[0.5em] font-mono focus:border-emerald-500 focus:outline-none"
+                    onChange={(e) => setOtp(e.target.value)}
+                  />
                   <button
                     type="submit"
                     className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold transition-all duration-300 shadow-lg shadow-emerald-500/20 active:scale-95"
                   >
-                    Get OTP
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForgotMode(true)}
-                    className="w-full text-xs text-amber-500 hover:text-amber-400 transition text-right pr-1"
-                  >
-                    Forgot Password?
+                    Verify &amp; Login
                   </button>
                 </form>
               )}
+              <button onClick={onCreateIdentity} className="text-xs text-slate-500 hover:text-emerald-400 transition mt-auto">New to BioChain? <span className="underline">Create Identity</span></button>
             </>
-          ) : (
-            <form onSubmit={handlePatientSubmit} className="space-y-4 mb-4">
-              <div className="text-center">
-                <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1">Verify Identity</p>
-                <p className="text-slate-500 text-xs mb-4">Enter the code sent to your terminal</p>
-              </div>
-              <input
-                type="text"
-                placeholder="000000"
-                maxLength="6"
-                required
-                className="w-full bg-[#0b0e14] p-4 rounded-xl border-2 border-emerald-500/50 text-white text-center text-2xl tracking-[0.5em] font-mono focus:border-emerald-500 focus:outline-none"
-                onChange={(e) => setOtp(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold transition-all duration-300 shadow-lg shadow-emerald-500/20 active:scale-95"
-              >
-                Verify &amp; Login
-              </button>
-            </form>
-          )}
-          <button onClick={onCreateIdentity} className="text-xs text-slate-500 hover:text-emerald-400 transition mt-auto">New to BioChain? <span className="underline">Create Identity</span></button>
-          </>
           )}
         </div>
 
@@ -439,15 +439,14 @@ function App() {
           {role === 'HOSPITAL_ADMIN' && <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-500/20">Admin</span>}
         </div>
 
-        <div className={`p-4 rounded-xl mb-8 flex items-center gap-3 border transition-all duration-300 flex-shrink-0 ${
-          role === 'HOSPITAL_ADMIN' ? 'bg-purple-500/5 border-purple-500/20' :
-          role?.includes('DOCTOR') ? 'bg-blue-500/5 border-blue-500/20' :
-          'bg-[#1a1f2e] border-slate-700/50'
-        }`}>
+        <div className={`p-4 rounded-xl mb-8 flex items-center gap-3 border transition-all duration-300 flex-shrink-0 ${role === 'HOSPITAL_ADMIN' ? 'bg-purple-500/5 border-purple-500/20' :
+            role?.includes('DOCTOR') ? 'bg-blue-500/5 border-blue-500/20' :
+              'bg-[#1a1f2e] border-slate-700/50'
+          }`}>
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0 ${role?.includes('DOCTOR') ? 'bg-blue-600' : role === 'HOSPITAL_ADMIN' ? 'bg-purple-600' : 'bg-emerald-600'}`}>
             {userData?.profile_photo_hash ? (
               <img
-                src={`https://ipfs.io/ipfs/${userData.profile_photo_hash}`}
+                src={getIpfsUrl(userData.profile_photo_hash)}
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />
@@ -457,11 +456,10 @@ function App() {
           </div>
           <div className="overflow-hidden min-w-0">
             <p className="text-sm font-bold text-white truncate">{userData?.name || userData?.hospital_name || 'User'}</p>
-            <span className={`text-[10px] uppercase font-bold tracking-widest ${
-              role === 'HOSPITAL_ADMIN' ? 'text-purple-400' :
-              role?.includes('DOCTOR') ? 'text-blue-400' :
-              'text-slate-500'
-            }`}>{userData?.staff_designation || role?.replace('_', ' ')}</span>
+            <span className={`text-[10px] uppercase font-bold tracking-widest ${role === 'HOSPITAL_ADMIN' ? 'text-purple-400' :
+                role?.includes('DOCTOR') ? 'text-blue-400' :
+                  'text-slate-500'
+              }`}>{userData?.staff_designation || role?.replace('_', ' ')}</span>
           </div>
         </div>
 
@@ -471,8 +469,8 @@ function App() {
             const activeClasses = role === 'HOSPITAL_ADMIN'
               ? 'bg-purple-500/10 text-purple-400 border-l-4 border-purple-500'
               : role?.includes('DOCTOR')
-              ? 'bg-blue-500/10 text-blue-400 border-l-4 border-blue-500'
-              : 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-500';
+                ? 'bg-blue-500/10 text-blue-400 border-l-4 border-blue-500'
+                : 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-500';
             return (
               <button key={item.name} onClick={() => setActiveTab(item.name)} className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 ${isActive ? activeClasses : 'hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'}`}>
                 <item.icon size={20} className="flex-shrink-0" />
@@ -495,11 +493,10 @@ function App() {
           </div>
           <div className="text-right">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Identity ID</p>
-            <p className={`text-xs font-mono ${
-              role === 'HOSPITAL_ADMIN' ? 'text-purple-400/80' :
-              role?.includes('DOCTOR') ? 'text-blue-400/80' :
-              'text-emerald-400/80'
-            }`}>{wallet.slice(0, 6)}...{wallet.slice(-4)}</p>
+            <p className={`text-xs font-mono ${role === 'HOSPITAL_ADMIN' ? 'text-purple-400/80' :
+                role?.includes('DOCTOR') ? 'text-blue-400/80' :
+                  'text-emerald-400/80'
+              }`}>{wallet.slice(0, 6)}...{wallet.slice(-4)}</p>
           </div>
         </header>
 
@@ -512,9 +509,9 @@ function App() {
           {activeTab === 'Staff Directory' && role === 'HOSPITAL_ADMIN' && <StaffDirectory />}
           {activeTab === 'Audit Logs' && role === 'HOSPITAL_ADMIN' && <AuditLogs />}
 
-          {activeTab === 'Patients' && <PatientsDirectory doctorData={userData} onSelectPatient={(p) => { 
-              setSelectedPatient(p); 
-              setActiveTab('Home'); 
+          {activeTab === 'Patients' && <PatientsDirectory doctorData={userData} onSelectPatient={(p) => {
+            setSelectedPatient(p);
+            setActiveTab('Home');
           }} />}
 
           {activeTab === 'My Record' && (

@@ -9,7 +9,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, getIpfsUrl } from '../config';
 import { UserPlus, ShieldCheck, Stethoscope, BadgeCheck, Activity, Users, FileText, Mail, Search, Copy, Check } from 'lucide-react';
 
 const StaffDirectory = () => {
@@ -48,7 +48,7 @@ const StaffDirectory = () => {
 
         try {
             const finalName = (formData.name.toLowerCase().startsWith('dr.') ? formData.name : `Dr. ${formData.name}`).trim();
-            
+
             await axios.post(`${API_BASE_URL}/api/admin/onboard-doctor`, {
                 ...formData,
                 name: finalName,
@@ -59,11 +59,11 @@ const StaffDirectory = () => {
                 department: formData.department.trim(),
                 license_number: formData.license_number.trim()
             });
-            
+
             setMessage("✅ Doctor successfully onboarded & verified!");
             setFormData({ name: '', email: '', phone: '', wallet_address: '', specialization: '', department: '', role: '', license_number: '' });
             fetchStaff();
-            
+
             setTimeout(() => setMessage(''), 4000);
         } catch (error) {
             setMessage(`❌ Error: ${error.response?.data?.detail || "Failed to onboard doctor"}`);
@@ -99,7 +99,7 @@ const StaffDirectory = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 animate-fade-in-up">
-            
+
             <div className="bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -121,31 +121,31 @@ const StaffDirectory = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 {/* LEFT: ONBOARDING FORM */}
                 <div className="lg:col-span-1 bg-[#121620] rounded-3xl p-6 border border-slate-800 shadow-xl h-fit">
                     <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2 border-b border-slate-800 pb-3">
                         <UserPlus className="text-emerald-400" size={20} /> Onboard New Staff
                     </h3>
-                    
+
                     <form onSubmit={handleOnboard} className="space-y-4">
                         <div className="space-y-3">
-                            <input required type="text" placeholder="Full Name (e.g. Yash)" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
-                            <input required type="email" placeholder="Official Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
-                            <input type="text" placeholder="Phone Number (Optional)" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
-                            <input required type="text" placeholder="Web3 Wallet Address (0x...)" value={formData.wallet_address} onChange={e => setFormData({...formData, wallet_address: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 font-mono transition" />
-                            <input required type="text" placeholder="Medical License Registration No." value={formData.license_number} onChange={e => setFormData({...formData, license_number: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+                            <input required type="text" placeholder="Full Name (e.g. Yash)" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+                            <input required type="email" placeholder="Official Email Address" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+                            <input type="text" placeholder="Phone Number (Optional)" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+                            <input required type="text" placeholder="Web3 Wallet Address (0x...)" value={formData.wallet_address} onChange={e => setFormData({ ...formData, wallet_address: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 font-mono transition" />
+                            <input required type="text" placeholder="Medical License Registration No." value={formData.license_number} onChange={e => setFormData({ ...formData, license_number: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <select required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-slate-300 px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 appearance-none cursor-pointer transition">
+                            <select required value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-slate-300 px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 appearance-none cursor-pointer transition">
                                 <option value="" disabled>Select Role...</option>
                                 <option value="Chief Medical Officer">Chief Medical Officer</option>
                                 <option value="Senior Consultant">Senior Consultant</option>
                                 <option value="Attending Physician">Attending Physician</option>
                                 <option value="Junior Resident">Junior Resident</option>
                             </select>
-                            <select required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-slate-300 px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 appearance-none cursor-pointer transition">
+                            <select required value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-slate-300 px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 appearance-none cursor-pointer transition">
                                 <option value="" disabled>Department...</option>
                                 <option value="Cardiology">Cardiology</option>
                                 <option value="Neurology">Neurology</option>
@@ -154,8 +154,8 @@ const StaffDirectory = () => {
                                 <option value="General Medicine">General Medicine</option>
                             </select>
                         </div>
-                        
-                        <input required type="text" placeholder="Specialization (e.g. Interventional Cardiology)" value={formData.specialization} onChange={e => setFormData({...formData, specialization: e.target.value})} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
+
+                        <input required type="text" placeholder="Specialization (e.g. Interventional Cardiology)" value={formData.specialization} onChange={e => setFormData({ ...formData, specialization: e.target.value })} className="w-full bg-[#0b0e14] text-sm text-white px-4 py-3 rounded-xl border border-slate-700 outline-none focus:border-blue-500 transition" />
 
                         <button disabled={isSubmitting} type="submit" className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white py-3.5 rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 active:scale-[0.98]">
                             {isSubmitting ? <Activity className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
@@ -180,7 +180,7 @@ const StaffDirectory = () => {
                             </h3>
                             <span className="bg-blue-500/10 text-xs font-bold px-3 py-1 rounded-full text-blue-400 border border-blue-500/20">{filteredStaff.length} of {staffList.length}</span>
                         </div>
-                        
+
                         {/* Search Input */}
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
@@ -193,14 +193,18 @@ const StaffDirectory = () => {
                             />
                         </div>
                     </div>
-                    
+
                     <div className="overflow-y-auto p-4 space-y-3 custom-scrollbar flex-1">
                         {filteredStaff.length > 0 ? (
                             filteredStaff.map((doc, idx) => (
                                 <div key={idx} className="bg-[#0b0e14] border border-slate-800 hover:border-blue-500/30 transition-all duration-200 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-blue-900/40 text-blue-400 rounded-full flex items-center justify-center font-bold border border-blue-500/20 group-hover:border-blue-500/40 transition flex-shrink-0">
-                                            {doc.name.replace('Dr. ', '').substring(0, 2).toUpperCase()}
+                                        <div className="w-12 h-12 bg-blue-900/40 text-blue-400 rounded-full flex items-center justify-center font-bold border border-blue-500/20 group-hover:border-blue-500/40 transition flex-shrink-0 overflow-hidden">
+                                            {doc.profile_photo_hash ? (
+                                                <img src={getIpfsUrl(doc.profile_photo_hash)} alt={doc.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                doc.name.replace('Dr. ', '').substring(0, 2).toUpperCase()
+                                            )}
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-white flex items-center gap-2">
@@ -215,20 +219,19 @@ const StaffDirectory = () => {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex flex-col items-start md:items-end gap-1.5">
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${
-                                            doc.role === 'Chief Medical Officer' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                            doc.role === 'Senior Consultant' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
-                                            doc.role === 'Attending Physician' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                            'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                                        }`}>
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border ${doc.role === 'Chief Medical Officer' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                doc.role === 'Senior Consultant' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                                                    doc.role === 'Attending Physician' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                        'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                            }`}>
                                             {doc.role}
                                         </span>
                                         <div className="flex items-center gap-2">
                                             <p className="text-[10px] text-slate-500 font-mono">Lic: {doc.license_number || 'N/A'}</p>
                                             {doc.wallet_address && (
-                                                <button 
+                                                <button
                                                     onClick={() => handleCopyWallet(doc.wallet_address)}
                                                     className="text-[10px] text-slate-600 hover:text-blue-400 font-mono flex items-center gap-1 transition"
                                                     title="Copy wallet address"
